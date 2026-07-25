@@ -12,6 +12,7 @@ export type CreateByResource={clients:CreateClientRequest;properties:CreatePrope
 export type UpdateByResource={clients:UpdateClientRequest;properties:UpdatePropertyRequest;projects:UpdateProjectRequest;tasks:UpdateTaskRequest};
 export type ProjectAction="plan"|"start"|"pause"|"resume"|"complete"|"cancel";
 export type TaskAction="start"|"block"|"resume"|"complete"|"cancel";
+export type ReportName="accounts-receivable"|"profitability"|"deadlines"|"workload"|"documents"|"activity";
 export function mergeNotifications(current:NotificationContract[],incoming:NotificationContract[]):NotificationContract[]{const merged=new Map(current.map(x=>[x.id,x]));for(const item of incoming)merged.set(item.id,item);return [...merged.values()].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));}
 
 export class ApiError extends Error {
@@ -52,23 +53,23 @@ export const api={
   taskLifecycle:(id:string,action:TaskAction,expectedVersion:number)=>raw<TaskContract>(`/tasks/${id}/${action}`,json("POST",{expectedVersion})),
   assign:(taskId:string,userId:string,expectedVersion:number)=>raw<TaskContract>(`/tasks/${taskId}/assignees`,json("POST",{userId,expectedVersion})),
   unassign:(taskId:string,userId:string,expectedVersion:number)=>raw<TaskContract>(`/tasks/${taskId}/assignees/${userId}`,json("DELETE",{expectedVersion})),
-  invoices:()=>raw<InvoiceContract[]>("/invoices"),
+  invoices:()=>raw<InvoiceContract[]>("/invoices?pageSize=100"),
   createInvoice:(body:unknown)=>raw<InvoiceContract>("/invoices",json("POST",body)),
   updateInvoice:(id:string,body:unknown)=>raw<InvoiceContract>(`/invoices/${id}`,json("PATCH",body)),
   invoiceAction:(id:string,action:"issue"|"cancel",expectedVersion:number)=>raw<InvoiceContract>(`/invoices/${id}/${action}`,json("POST",{expectedVersion})),
   archiveInvoice:(id:string,expectedVersion:number)=>raw<InvoiceContract>(`/invoices/${id}`,json("DELETE",{expectedVersion})),
-  payments:()=>raw<PaymentContract[]>("/payments"),
+  payments:()=>raw<PaymentContract[]>("/payments?pageSize=100"),
   createPayment:(body:unknown)=>raw<PaymentContract>("/payments",json("POST",body)),
   allocatePayment:(id:string,invoiceId:string,amount:string,expectedVersion:number)=>raw<PaymentContract>(`/payments/${id}/allocate`,json("POST",{invoiceId,amount,expectedVersion})),
   reversePayment:(id:string,expectedVersion:number)=>raw<PaymentContract>(`/payments/${id}/reverse`,json("POST",{expectedVersion})),
   archivePayment:(id:string,expectedVersion:number)=>raw<PaymentContract>(`/payments/${id}`,json("DELETE",{expectedVersion})),
-  expenses:()=>raw<ExpenseContract[]>("/expenses"),
+  expenses:()=>raw<ExpenseContract[]>("/expenses?pageSize=100"),
   createExpense:(body:unknown)=>raw<ExpenseContract>("/expenses",json("POST",body)),
   updateExpense:(id:string,body:unknown)=>raw<ExpenseContract>(`/expenses/${id}`,json("PATCH",body)),
   expenseAction:(id:string,action:"approve"|"reject",expectedVersion:number)=>raw<ExpenseContract>(`/expenses/${id}/${action}`,json("POST",{expectedVersion})),
   archiveExpense:(id:string,expectedVersion:number)=>raw<ExpenseContract>(`/expenses/${id}`,json("DELETE",{expectedVersion})),
   projectFinancialSummary:(id:string)=>raw<ProjectFinancialSummary>(`/projects/${id}/financial-summary`),
-  documents:()=>raw<DocumentContract[]>("/documents"),
+  documents:()=>raw<DocumentContract[]>("/documents?pageSize=100"),
   uploadDocument:(file:File,meta:{category:string;description:string;entityType:string;entityId:string})=>{const body=new FormData();for(const [k,v] of Object.entries(meta))body.append(k,v);body.append("file",file);return raw<DocumentContract>("/documents",{method:"POST",body});},
   updateDocument:(id:string,body:unknown)=>raw<DocumentContract>(`/documents/${id}`,json("PATCH",body)),
   archiveDocument:(id:string,expectedVersion:number)=>raw<DocumentContract>(`/documents/${id}`,json("DELETE",{expectedVersion})),
@@ -81,5 +82,9 @@ export const api={
   markAllNotificationsRead:()=>raw<{updated:number}>("/notifications/read-all",json("POST",{})),
   notificationPreferences:()=>raw<NotificationPreferencesContract>("/notification-preferences").then(x=>NotificationPreferencesSchema.parse(x)),
   updateNotificationPreferences:(body:Partial<NotificationPreferencesContract>&{expectedVersion:number})=>raw<NotificationPreferencesContract>("/notification-preferences",json("PATCH",body)).then(x=>NotificationPreferencesSchema.parse(x)),
+  dashboard:(range=30)=>raw<any>(`/dashboard/executive?range=${range}`),
+  projectHealth:()=>raw<any[]>("/dashboard/project-health"),
+  report:(name:ReportName,query="range=30&pageSize=100")=>raw<any[]>(`/reports/${name}?${query}`),
+  exportReport:async(name:ReportName,query="range=30")=>{const headers=new Headers();if(session)headers.set("authorization",`Bearer ${session.accessToken}`);const response=await fetch(`${base}/reports/${name}/export?${query}`,{headers});if(!response.ok){const body=await response.json().catch(()=>({}));throw new ApiError(response.status,body?.error?.code??"REQUEST_FAILED");}return {blob:await response.blob(),disposition:response.headers.get("content-disposition")};},
   logout:()=>session?raw<{revoked:boolean}>("/auth/logout",json("POST",{refreshToken:session.refreshToken})):Promise.resolve()
 };

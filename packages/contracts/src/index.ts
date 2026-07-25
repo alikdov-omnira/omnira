@@ -153,3 +153,25 @@ export const NotificationListResponseSchema=z.object({data:z.array(NotificationS
 export const NotificationUnreadCountSchema=z.object({data:z.object({count:z.number().int().nonnegative()})});
 export type NotificationContract=z.infer<typeof NotificationSchema>;
 export type NotificationPreferencesContract=z.infer<typeof NotificationPreferencesSchema>;
+
+const AnalyticsDateSchema=z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+export const AnalyticsReportNameSchema=z.enum(["accounts-receivable","revenue","expenses","profitability","tasks","deadlines","workload","documents","activity"]);
+export const AnalyticsQuerySchema=z.object({
+ range:z.coerce.number().pipe(z.union([z.literal(7),z.literal(30),z.literal(90)])).optional(),
+ start:AnalyticsDateSchema.optional(),end:AnalyticsDateSchema.optional(),
+ page:z.coerce.number().int().positive().default(1),pageSize:z.coerce.number().int().min(1).max(100).default(25),
+ sortBy:z.enum(["name","date","status","amount"]).optional(),sortOrder:z.enum(["asc","desc"]).default("desc"),
+ groupBy:z.enum(["month","client","project","category"]).optional(),projectId:z.string().uuid().optional(),clientId:z.string().uuid().optional(),
+ userId:z.string().uuid().optional(),currencyCode:CurrencySchema.optional(),status:z.string().max(40).optional(),category:z.string().max(100).optional(),
+ overdue:z.preprocess(v=>v==="true"?true:v==="false"?false:v,z.boolean()).optional(),
+ tenantId:z.never().optional()
+}).strict().refine(x=>(x.start&&x.end)||(!x.start&&!x.end),{message:"start and end must be supplied together"});
+export const AnalyticsReportParamsSchema=z.object({report:AnalyticsReportNameSchema});
+export const AnalyticsRangeSchema=z.object({start:AnalyticsDateSchema,endExclusive:AnalyticsDateSchema,timezone:z.literal("UTC")});
+export const CurrencyMetricGroupSchema=z.object({currencyCode:CurrencySchema,invoicedGross:SignedFinanceDecimalSchema,paid:SignedFinanceDecimalSchema,outstanding:SignedFinanceDecimalSchema,overdueReceivables:SignedFinanceDecimalSchema,approvedExpenses:SignedFinanceDecimalSchema,grossMargin:SignedFinanceDecimalSchema,grossMarginPercentage:SignedFinanceDecimalSchema.nullable()});
+export const ProjectHealthStateSchema=z.enum(["healthy","attention","at_risk","completed","paused"]);
+export const ProjectHealthSchema=z.object({id:z.string().uuid(),projectNumber:z.string(),name:z.string(),status:z.string(),expectedCompletionDate:AnalyticsDateSchema.nullable(),currencyCode:CurrencySchema,overdueTasks:z.number().int().nonnegative(),blockedTasks:z.number().int().nonnegative(),endDatePassed:z.boolean(),overdueReceivables:SignedFinanceDecimalSchema,grossMargin:SignedFinanceDecimalSchema.nullable(),health:z.object({state:ProjectHealthStateSchema,score:z.number().int().min(0).max(100),reasons:z.array(z.string())})});
+export const AnalyticsPaginationSchema=PaginationSchema;
+export const CsvExportMetadataSchema=z.object({filename:z.string(),rowCount:z.number().int().nonnegative(),contentType:z.literal("text/csv; charset=utf-8"),maxRows:z.number().int().positive()});
+export type AnalyticsQuery=z.infer<typeof AnalyticsQuerySchema>;
+export type AnalyticsReportName=z.infer<typeof AnalyticsReportNameSchema>;
