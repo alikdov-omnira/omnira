@@ -11,6 +11,12 @@
     "test": "OIDC_ISSUER_URL=https://identity.test OIDC_AUDIENCE=odls-test vitest run",
     "lint": "eslint src --max-warnings=0",
     "start": "node dist/src/server.js",
+    "worker:start": "node dist/src/worker.js",
+    "worker:dev": "tsx watch src/worker.ts",
+    "worker:build": "tsc -p tsconfig.json",
+    "worker:typecheck": "tsc --noEmit -p tsconfig.json",
+    "worker:test": "OIDC_ISSUER_URL=https://identity.test OIDC_AUDIENCE=odls-test vitest run test/notification-*.test.ts",
+    "worker:lint": "eslint src/application/notification src/domain/notification src/infrastructure/notification src/worker.ts --max-warnings=0",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:migrate:status": "tsx scripts/migrate.ts --status",
     "db:seed": "tsx scripts/seed.ts"

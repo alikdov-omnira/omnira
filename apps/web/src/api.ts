@@ -1,8 +1,9 @@
 import type {
   ClientContract,CreateClientRequest,CreateProjectRequest,CreatePropertyRequest,CreateTaskRequest,DocumentContract,DocumentVersionSchema,
   ExpenseContract,InvoiceContract,PaymentContract,ProjectContract,ProjectFinancialSummary,PropertyContract,TaskContract,UpdateClientRequest,UpdateProjectRequest,
-  UpdatePropertyRequest,UpdateTaskRequest
+  UpdatePropertyRequest,UpdateTaskRequest,NotificationContract,NotificationPreferencesContract
 } from "@odls/contracts";
+import {NotificationSchema,NotificationPreferencesSchema} from "@odls/contracts";
 
 export type Session={accessToken:string;refreshToken:string;user:{id:string;email:string;displayName:string};permissions:string[]};
 export type Resource="clients"|"properties"|"projects"|"tasks";
@@ -11,6 +12,7 @@ export type CreateByResource={clients:CreateClientRequest;properties:CreatePrope
 export type UpdateByResource={clients:UpdateClientRequest;properties:UpdatePropertyRequest;projects:UpdateProjectRequest;tasks:UpdateTaskRequest};
 export type ProjectAction="plan"|"start"|"pause"|"resume"|"complete"|"cancel";
 export type TaskAction="start"|"block"|"resume"|"complete"|"cancel";
+export function mergeNotifications(current:NotificationContract[],incoming:NotificationContract[]):NotificationContract[]{const merged=new Map(current.map(x=>[x.id,x]));for(const item of incoming)merged.set(item.id,item);return [...merged.values()].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));}
 
 export class ApiError extends Error {
   constructor(public status:number,public code:string,public correlationId?:string,public details:Record<string,unknown>={}){super(code);}
@@ -73,5 +75,11 @@ export const api={
   documentVersions:(id:string)=>raw<Array<ReturnType<typeof DocumentVersionSchema.parse>>>(`/documents/${id}/versions`),
   uploadDocumentVersion:(id:string,file:File,expectedVersion:number)=>{const body=new FormData();body.append("expectedVersion",String(expectedVersion));body.append("file",file);return raw<DocumentContract>(`/documents/${id}/versions`,{method:"POST",body});},
   downloadDocument:async(id:string,versionId?:string)=>{const headers=new Headers();if(session)headers.set("authorization",`Bearer ${session.accessToken}`);const response=await fetch(`${base}/documents/${id}${versionId?`/versions/${versionId}`:""}/download`,{headers});if(!response.ok)throw new ApiError(response.status,"REQUEST_FAILED");return {blob:await response.blob(),disposition:response.headers.get("content-disposition")};},
+  notifications:async(query="archived=false")=>(await raw<unknown[]>(`/notifications?${query}`)).map(x=>NotificationSchema.parse(x)),
+  unreadCount:()=>raw<{count:number}>("/notifications/unread-count"),
+  notificationState:(id:string,state:"read"|"unread"|"archive",expectedVersion:number)=>raw<NotificationContract>(`/notifications/${id}${state==="archive"?"":`/${state}`}`,json(state==="archive"?"DELETE":"POST",{expectedVersion})).then(x=>NotificationSchema.parse(x)),
+  markAllNotificationsRead:()=>raw<{updated:number}>("/notifications/read-all",json("POST",{})),
+  notificationPreferences:()=>raw<NotificationPreferencesContract>("/notification-preferences").then(x=>NotificationPreferencesSchema.parse(x)),
+  updateNotificationPreferences:(body:Partial<NotificationPreferencesContract>&{expectedVersion:number})=>raw<NotificationPreferencesContract>("/notification-preferences",json("PATCH",body)).then(x=>NotificationPreferencesSchema.parse(x)),
   logout:()=>session?raw<{revoked:boolean}>("/auth/logout",json("POST",{refreshToken:session.refreshToken})):Promise.resolve()
 };

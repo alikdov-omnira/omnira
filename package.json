@@ -20,6 +20,7 @@
     "docker:prepare": "node scripts/prepare-docker.mjs",
     "docker:build:core": "pnpm run docker:prepare && docker build -f Dockerfile.core -t odls-core-service .",
     "docker:build:gateway": "pnpm run docker:prepare && docker build -f Dockerfile.gateway -t odls-api-gateway .",
+    "docker:build:worker": "pnpm run docker:prepare && docker build -f Dockerfile.worker -t odls-notification-worker .",
     "dev:gateway": "npm run dev -w @odls/api-gateway",
     "dev:web": "npm run dev -w @odls/web",
     "dev:core": "pnpm --filter @odls/core-service run dev"

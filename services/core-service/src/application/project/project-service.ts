@@ -6,12 +6,13 @@ import {lifecycleTransition,normalizeProject,normalizeProjectUpdate} from "../..
 import type {CreateProjectCommand,Project,ProjectLifecycleAction,ProjectListQuery,ProjectListResult,UpdateProjectCommand} from "../../domain/project/project-types.js";
 import {ProjectRepository} from "../../infrastructure/project/project-repository.js";
 import {inTenantTransaction} from "../../infrastructure/transaction.js";
+import {enqueueDomainEvent} from "../../infrastructure/notification/outbox.js";
 
 export type ProjectActor={id:string;tenantId:string;permissions:readonly string[];correlationId:string};
 const correlation=(value:string)=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)?value:randomUUID();
 export class ProjectService {
   constructor(private readonly pool:Pool,private readonly repository=new ProjectRepository()){}
-  private async audit(db:PoolClient,actor:ProjectActor,action:string,id:string|undefined,metadata:Record<string,unknown>={}){await db.query("INSERT INTO audit_logs(tenant_id,actor_id,action,entity_type,entity_id,correlation_id,metadata) VALUES($1,$2,$3,'project',$4,$5,$6)",[actor.tenantId,actor.id,action,id??null,correlation(actor.correlationId),metadata]);}
+  private async audit(db:PoolClient,actor:ProjectActor,action:string,id:string|undefined,metadata:Record<string,unknown>={}){const idempotencyCorrelation=correlation(actor.correlationId);await db.query("INSERT INTO audit_logs(tenant_id,actor_id,action,entity_type,entity_id,correlation_id,metadata) VALUES($1,$2,$3,'project',$4,$5,$6)",[actor.tenantId,actor.id,action,id??null,idempotencyCorrelation,metadata]);await enqueueDomainEvent(db,{tenantId:actor.tenantId,actorId:actor.id,action,entityType:"project",entityId:id,correlationId:idempotencyCorrelation,metadata});}
   private async authorize(actor:ProjectActor,assertion:(actor:ProjectActor)=>void,operation:string,id?:string){try{assertion(actor);}catch(error){await inTenantTransaction(this.pool,actor.tenantId,db=>this.audit(db,actor,"project.permission_denied",id,{operation}));throw error;}}
   private async recordFailure(actor:ProjectActor,error:unknown,id?:string){if(!(error instanceof DomainError))return;const actions:Partial<Record<DomainError["code"],string>>={VERSION_CONFLICT:"project.version_conflict",ENTITY_ARCHIVED:"project.archived_mutation_denied",INVALID_STATUS_TRANSITION:"project.invalid_lifecycle_transition",DUPLICATE_RECORD:"project.duplicate_number"};const action=actions[error.code];if(action)await inTenantTransaction(this.pool,actor.tenantId,db=>this.audit(db,actor,action,id));}
   private async assertRelationships(db:PoolClient,tenantId:string,value:{clientId:string;propertyId:string;financialOwnerLegalEntityId:string;projectManagerId?:string|null},creating:boolean){

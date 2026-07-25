@@ -14,3 +14,11 @@ export async function inTenantTransaction<T>(pool: Pool, tenantId: string, opera
     throw error;
   } finally { client.release(); }
 }
+
+export async function inUserTransaction<T>(pool:Pool,tenantId:string,userId:string,operation:(client:PoolClient)=>Promise<T>):Promise<T>{
+ return inTenantTransaction(pool,tenantId,async client=>{await client.query("SELECT set_config('app.user_id',$1,true)",[userId]);return operation(client);});
+}
+
+export async function inWorkerTransaction<T>(pool:Pool,tenantId:string,operation:(client:PoolClient)=>Promise<T>):Promise<T>{
+ return inTenantTransaction(pool,tenantId,async client=>{await client.query("SELECT set_config('app.worker','true',true)");return operation(client);});
+}

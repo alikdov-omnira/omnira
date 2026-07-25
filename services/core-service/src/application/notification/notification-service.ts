@@ -1,0 +1,21 @@
+import {randomUUID} from "node:crypto";
+import type {Pool} from "pg";
+import {assertCanManageNotifications,assertCanReadNotifications,assertCanUpdateNotifications,type NotificationActor} from "../../authorization/notification-policy.js";
+import {domainErrors} from "../../domain/errors.js";
+import type {NotificationListQuery,NotificationPreferences} from "../../domain/notification/notification-types.js";
+import {NotificationRepository} from "../../infrastructure/notification/notification-repository.js";
+import {inUserTransaction,inWorkerTransaction} from "../../infrastructure/transaction.js";
+const correlation=(value:string)=>/^[0-9a-f-]{36}$/i.test(value)?value:randomUUID();
+export class NotificationService{
+ constructor(private readonly pool:Pool,private readonly repository=new NotificationRepository()){}
+ private user<T>(actor:NotificationActor,op:(db:any)=>Promise<T>){return inUserTransaction(this.pool,actor.tenantId,actor.id,op);}
+ async list(actor:NotificationActor,q:NotificationListQuery){assertCanReadNotifications(actor);if(q.page<1||q.pageSize<1||q.pageSize>100)throw domainErrors.validation("Invalid pagination");if(!["createdAt","severity","status"].includes(q.sortBy))throw domainErrors.validation("Invalid sort field");return this.user(actor,db=>this.repository.list(db,actor.tenantId,actor.id,q));}
+ async get(actor:NotificationActor,id:string){assertCanReadNotifications(actor);const row=await this.user(actor,db=>this.repository.find(db,actor.tenantId,actor.id,id));if(!row)throw domainErrors.notFound();return row;}
+ async unreadCount(actor:NotificationActor){assertCanReadNotifications(actor);return this.user(actor,db=>this.repository.unreadCount(db,actor.tenantId,actor.id));}
+ async state(actor:NotificationActor,id:string,status:"read"|"unread"|"archived",expectedVersion:number){assertCanUpdateNotifications(actor);if(!Number.isInteger(expectedVersion)||expectedVersion<1)throw domainErrors.validation("expectedVersion must be a positive integer");return this.user(actor,async db=>{const current=await this.repository.find(db,actor.tenantId,actor.id,id);if(!current)throw domainErrors.notFound();if(current.version!==expectedVersion)throw domainErrors.conflict();if(current.status==="archived"&&status!=="archived")throw domainErrors.archived();const updated=await this.repository.setStatus(db,actor.tenantId,actor.id,id,status,expectedVersion);if(!updated)throw domainErrors.conflict();await this.repository.audit(db,actor.tenantId,actor.id,`notification.${status}`,id,correlation(actor.correlationId),{previousVersion:current.version,newVersion:updated.version});return updated;});}
+ async markAllRead(actor:NotificationActor){assertCanUpdateNotifications(actor);return this.user(actor,async db=>{const count=await this.repository.markAllRead(db,actor.tenantId,actor.id);await this.repository.audit(db,actor.tenantId,actor.id,"notification.read_all",undefined,correlation(actor.correlationId),{count});return count;});}
+ async preferences(actor:NotificationActor){assertCanReadNotifications(actor);return this.user(actor,db=>this.repository.preferences(db,actor.tenantId,actor.id));}
+ async updatePreferences(actor:NotificationActor,input:Partial<NotificationPreferences>&{expectedVersion:number}){assertCanUpdateNotifications(actor);return this.user(actor,async db=>{await this.repository.preferences(db,actor.tenantId,actor.id);const updated=await this.repository.updatePreferences(db,actor.tenantId,actor.id,input);if(!updated)throw domainErrors.conflict();await this.repository.audit(db,actor.tenantId,actor.id,"notification.preferences_updated",undefined,correlation(actor.correlationId),{newVersion:updated.version});return updated;});}
+ async failures(actor:NotificationActor){assertCanManageNotifications(actor);return inWorkerTransaction(this.pool,actor.tenantId,async db=>(await db.query("SELECT id,event_type AS \"eventType\",entity_type AS \"entityType\",entity_id AS \"entityId\",attempt_count AS \"attemptCount\",last_error AS \"lastError\",state,created_at AS \"createdAt\" FROM outbox_events WHERE tenant_id=$1 AND state IN ('failed','dead_letter') ORDER BY created_at DESC LIMIT 100",[actor.tenantId])).rows);}
+}
+export type {NotificationActor};

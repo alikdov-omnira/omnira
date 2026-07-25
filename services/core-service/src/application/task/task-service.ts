@@ -6,12 +6,13 @@ import {assertDueDateWithinProject,normalizeTask,normalizeTaskUpdate,taskLifecyc
 import type {CreateTaskCommand,Task,TaskLifecycleAction,TaskListQuery,TaskListResult,UpdateTaskCommand} from "../../domain/task/task-types.js";
 import {TaskRepository} from "../../infrastructure/task/task-repository.js";
 import {inTenantTransaction} from "../../infrastructure/transaction.js";
+import {enqueueDomainEvent} from "../../infrastructure/notification/outbox.js";
 
 export type TaskActor={id:string;tenantId:string;permissions:readonly string[];correlationId:string};
 const correlation=(value:string)=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)?value:randomUUID();
 export class TaskService {
   constructor(private readonly pool:Pool,private readonly repository=new TaskRepository()){}
-  private async audit(db:PoolClient,actor:TaskActor,action:string,id:string|undefined,metadata:Record<string,unknown>={}){await db.query("INSERT INTO audit_logs(tenant_id,actor_id,action,entity_type,entity_id,correlation_id,metadata) VALUES($1,$2,$3,'task',$4,$5,$6)",[actor.tenantId,actor.id,action,id??null,correlation(actor.correlationId),metadata]);}
+  private async audit(db:PoolClient,actor:TaskActor,action:string,id:string|undefined,metadata:Record<string,unknown>={}){const idempotencyCorrelation=correlation(actor.correlationId);await db.query("INSERT INTO audit_logs(tenant_id,actor_id,action,entity_type,entity_id,correlation_id,metadata) VALUES($1,$2,$3,'task',$4,$5,$6)",[actor.tenantId,actor.id,action,id??null,idempotencyCorrelation,metadata]);await enqueueDomainEvent(db,{tenantId:actor.tenantId,actorId:actor.id,action,entityType:"task",entityId:id,correlationId:idempotencyCorrelation,metadata});}
   private async authorize(actor:TaskActor,assertion:(actor:TaskActor)=>void,operation:string,id?:string){try{assertion(actor);}catch(error){await inTenantTransaction(this.pool,actor.tenantId,db=>this.audit(db,actor,"task.permission_denied",id,{operation}));throw error;}}
   private async recordFailure(actor:TaskActor,error:unknown,id?:string){if(!(error instanceof DomainError))return;const actions:Partial<Record<DomainError["code"],string>>={VERSION_CONFLICT:"task.version_conflict",ENTITY_ARCHIVED:"task.archived_mutation_denied",INVALID_STATUS_TRANSITION:"task.invalid_lifecycle_transition"};const action=actions[error.code];if(action)await inTenantTransaction(this.pool,actor.tenantId,db=>this.audit(db,actor,action,id));}
   private async projectForMutation(db:PoolClient,tenantId:string,id:string){const project=await this.repository.findProject(db,tenantId,id);if(!project)throw domainErrors.notFound();if(project.archivedAt||project.status==="archived")throw domainErrors.archived();if(project.status==="completed"||project.status==="cancelled")throw new DomainError("INVALID_RELATIONSHIP",422,"Tasks cannot be changed in a terminal Project");return project;}
