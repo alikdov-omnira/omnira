@@ -1,5 +1,5 @@
 import type {
-  ClientContract,CreateClientRequest,CreateProjectRequest,CreatePropertyRequest,CreateTaskRequest,
+  ClientContract,CreateClientRequest,CreateProjectRequest,CreatePropertyRequest,CreateTaskRequest,DocumentContract,DocumentVersionSchema,
   ExpenseContract,InvoiceContract,PaymentContract,ProjectContract,ProjectFinancialSummary,PropertyContract,TaskContract,UpdateClientRequest,UpdateProjectRequest,
   UpdatePropertyRequest,UpdateTaskRequest
 } from "@odls/contracts";
@@ -31,7 +31,7 @@ let session:Session|null=JSON.parse(storage?.getItem("odls.session")??"null");
 export const auth={get:()=>session,set:(value:Session|null)=>{session=value;if(value)storage?.setItem("odls.session",JSON.stringify(value));else storage?.removeItem("odls.session");}};
 
 async function raw<T>(path:string,init:RequestInit={},retried=false):Promise<T>{
-  const headers=new Headers(init.headers);headers.set("content-type","application/json");if(session)headers.set("authorization",`Bearer ${session.accessToken}`);
+  const headers=new Headers(init.headers);if(!(init.body instanceof FormData))headers.set("content-type","application/json");if(session)headers.set("authorization",`Bearer ${session.accessToken}`);
   const response=await fetch(`${base}${path}`,{...init,headers});const body=await response.json().catch(()=>null);
   if(response.status===401&&session&&!retried&&path!=="/auth/refresh"){const refresh=await fetch(`${base}/auth/refresh`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({refreshToken:session.refreshToken})});const refreshed=await refresh.json();if(refresh.ok){auth.set({...session,...refreshed.data});return raw<T>(path,init,true);}auth.set(null);}
   if(!response.ok){const problem=body?.error??body??{};throw new ApiError(response.status,problem.code??"REQUEST_FAILED",problem.correlationId??problem.requestId,problem.details??{});}
@@ -66,5 +66,12 @@ export const api={
   expenseAction:(id:string,action:"approve"|"reject",expectedVersion:number)=>raw<ExpenseContract>(`/expenses/${id}/${action}`,json("POST",{expectedVersion})),
   archiveExpense:(id:string,expectedVersion:number)=>raw<ExpenseContract>(`/expenses/${id}`,json("DELETE",{expectedVersion})),
   projectFinancialSummary:(id:string)=>raw<ProjectFinancialSummary>(`/projects/${id}/financial-summary`),
+  documents:()=>raw<DocumentContract[]>("/documents"),
+  uploadDocument:(file:File,meta:{category:string;description:string;entityType:string;entityId:string})=>{const body=new FormData();for(const [k,v] of Object.entries(meta))body.append(k,v);body.append("file",file);return raw<DocumentContract>("/documents",{method:"POST",body});},
+  updateDocument:(id:string,body:unknown)=>raw<DocumentContract>(`/documents/${id}`,json("PATCH",body)),
+  archiveDocument:(id:string,expectedVersion:number)=>raw<DocumentContract>(`/documents/${id}`,json("DELETE",{expectedVersion})),
+  documentVersions:(id:string)=>raw<Array<ReturnType<typeof DocumentVersionSchema.parse>>>(`/documents/${id}/versions`),
+  uploadDocumentVersion:(id:string,file:File,expectedVersion:number)=>{const body=new FormData();body.append("expectedVersion",String(expectedVersion));body.append("file",file);return raw<DocumentContract>(`/documents/${id}/versions`,{method:"POST",body});},
+  downloadDocument:async(id:string,versionId?:string)=>{const headers=new Headers();if(session)headers.set("authorization",`Bearer ${session.accessToken}`);const response=await fetch(`${base}/documents/${id}${versionId?`/versions/${versionId}`:""}/download`,{headers});if(!response.ok)throw new ApiError(response.status,"REQUEST_FAILED");return {blob:await response.blob(),disposition:response.headers.get("content-disposition")};},
   logout:()=>session?raw<{revoked:boolean}>("/auth/logout",json("POST",{refreshToken:session.refreshToken})):Promise.resolve()
 };

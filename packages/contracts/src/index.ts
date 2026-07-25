@@ -121,3 +121,21 @@ export type InvoiceContract=z.infer<typeof InvoiceSchema>; export type PaymentCo
 export type CreateInvoiceRequest=z.infer<typeof CreateInvoiceRequestSchema>; export type UpdateInvoiceRequest=z.infer<typeof UpdateInvoiceRequestSchema>;
 export type CreatePaymentRequest=z.infer<typeof CreatePaymentRequestSchema>; export type CreateExpenseRequest=z.infer<typeof CreateExpenseRequestSchema>; export type UpdateExpenseRequest=z.infer<typeof UpdateExpenseRequestSchema>;
 export type ProjectFinancialSummary=z.infer<typeof ProjectFinancialSummarySchema>;
+
+export const DocumentCategorySchema=z.enum(["contract","offer","invoice","receipt","project_plan","photo","protocol","permit","correspondence","other"]);
+export const DocumentEntityTypeSchema=z.enum(["client","property","project","task","invoice","payment","expense"]);
+export const DocumentLinkSchema=z.object({id:z.string().uuid(),entityType:DocumentEntityTypeSchema,entityId:z.string().uuid()});
+export const DocumentVersionSchema=z.object({id:z.string().uuid(),versionNo:z.number().int().positive(),originalFilename:z.string(),mimeType:z.string(),extension:z.string(),fileSize:z.number().int().positive(),checksum:z.string().length(64),uploadedBy:z.string().uuid(),createdAt:z.union([z.string(),z.date()])});
+export const DocumentSchema=z.object({id:z.string().uuid(),tenantId:z.string().uuid(),category:DocumentCategorySchema,description:z.string().nullable(),currentVersionNo:z.number().int().positive(),version:z.number().int().positive(),createdAt:z.union([z.string(),z.date()]),updatedAt:z.union([z.string(),z.date()]),archivedAt:z.union([z.string(),z.date()]).nullable(),currentVersion:DocumentVersionSchema,links:z.array(DocumentLinkSchema)});
+export const DocumentUploadMetadataSchema=z.object({tenantId:z.never().optional(),storageKey:z.never().optional(),checksum:z.never().optional(),fileSize:z.never().optional(),uploadedBy:z.never().optional(),category:DocumentCategorySchema,description:z.string().trim().max(5000).optional(),entityType:DocumentEntityTypeSchema,entityId:z.string().uuid()}).strict();
+export const UpdateDocumentRequestSchema=z.object({expectedVersion:z.number().int().positive(),category:DocumentCategorySchema.optional(),description:z.string().trim().max(5000).nullable().optional()}).strict();
+export const DocumentVersionUploadMetadataSchema=z.object({expectedVersion:z.number().int().positive()}).strict();
+export const DocumentVersionRequestSchema=z.object({expectedVersion:z.number().int().positive()}).strict();
+export const AddDocumentLinkRequestSchema=z.object({entityType:DocumentEntityTypeSchema,entityId:z.string().uuid(),expectedVersion:z.number().int().positive()}).strict();
+export const DocumentLinkParamsSchema=z.object({id:z.string().uuid(),linkId:z.string().uuid()});
+export const DocumentListQuerySchema=z.object({page:z.coerce.number().int().positive().default(1),pageSize:z.coerce.number().int().min(1).max(100).default(25),search:z.string().trim().max(200).optional(),category:DocumentCategorySchema.optional(),mimeType:z.string().max(200).optional(),uploaderId:z.string().uuid().optional(),entityType:DocumentEntityTypeSchema.optional(),entityId:z.string().uuid().optional(),createdFrom:z.coerce.date().optional(),createdTo:z.coerce.date().optional(),archived:z.preprocess(v=>v==="true"?true:v==="false"?false:v,z.boolean()).optional(),sortBy:z.enum(["filename","category","createdAt","updatedAt"]).default("updatedAt"),sortOrder:z.enum(["asc","desc"]).default("desc")}).refine(x=>!x.entityId||x.entityType,{message:"entityType is required with entityId"});
+export const DocumentIdParamsSchema=z.object({id:z.string().uuid()});
+export const DocumentVersionParamsSchema=z.object({id:z.string().uuid(),versionId:z.string().uuid()});
+export type DocumentContract=z.infer<typeof DocumentSchema>;
+export type DocumentCategory=z.infer<typeof DocumentCategorySchema>;
+export type DocumentEntityType=z.infer<typeof DocumentEntityTypeSchema>;
