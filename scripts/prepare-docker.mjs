@@ -1,0 +1,10 @@
+import {execFileSync} from "node:child_process";
+import {rmSync,mkdirSync} from "node:fs";
+const root=new URL("../",import.meta.url);
+const output=new URL("../.docker/",import.meta.url);
+rmSync(output,{recursive:true,force:true});mkdirSync(output,{recursive:true});
+const run=(args)=>execFileSync("corepack",["pnpm",...args],{cwd:root,stdio:"inherit",env:{...process.env,CI:"true"}});
+const tsc=(project)=>execFileSync("./node_modules/.bin/tsc",["-p",project],{cwd:root,stdio:"inherit"});
+tsc("packages/contracts/tsconfig.json");tsc("packages/platform/tsconfig.json");tsc("services/core-service/tsconfig.json");tsc("apps/api-gateway/tsconfig.json");
+run(["--filter","@odls/core-service","deploy","--prod","--legacy",".docker/core"]);
+run(["--filter","@odls/api-gateway","deploy","--prod","--legacy",".docker/gateway"]);

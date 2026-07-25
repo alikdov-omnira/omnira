@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment: { POSTGRES_DB: odls, POSTGRES_USER: odls, POSTGRES_PASSWORD: odls }
+    ports: ["5432:5432"]
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+  core-service:
+    build: { context: ., dockerfile: Dockerfile.core }
+    env_file: .env
+    environment: { CORE_SERVICE_PORT: "3001", DATABASE_URL: "postgresql://odls:odls@postgres:5432/odls" }
+    ports: ["3001:3001"]
+    depends_on: [postgres]
+  api-gateway:
+    build: { context: ., dockerfile: Dockerfile.gateway }
+    env_file: .env
+    environment: { GATEWAY_PORT: "3000", CORE_SERVICE_URL: "http://core-service:3001" }
+    ports: ["3000:3000"]
+    depends_on: [core-service]
+volumes:
+  postgres_data:

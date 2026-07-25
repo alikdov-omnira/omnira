@@ -1,0 +1,15 @@
+ALTER TABLE clients ADD COLUMN client_type text NOT NULL DEFAULT 'company' CHECK (client_type IN ('individual','company'));
+ALTER TABLE clients ADD COLUMN legal_name text;
+ALTER TABLE clients ADD COLUMN tax_id text;
+ALTER TABLE clients ADD COLUMN email citext;
+ALTER TABLE clients ADD COLUMN phone text;
+ALTER TABLE clients ADD COLUMN notes text;
+ALTER TABLE properties ADD COLUMN description text;
+ALTER TABLE projects ADD COLUMN actual_completion_date date;
+ALTER TABLE projects DROP CONSTRAINT IF EXISTS projects_status_check;
+ALTER TABLE projects ADD CONSTRAINT projects_status_check CHECK (status IN ('draft','planned','active','paused','completed','cancelled','archived'));
+ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_status_check;
+ALTER TABLE tasks ADD CONSTRAINT tasks_status_check CHECK (status IN ('todo','in_progress','blocked','completed','cancelled','archived'));
+ALTER TABLE tasks ADD COLUMN started_at timestamptz;
+CREATE INDEX idx_projects_tenant_client ON projects(tenant_id,client_id) WHERE deleted_at IS NULL;
+CREATE INDEX idx_tasks_tenant_due ON tasks(tenant_id,due_date) WHERE deleted_at IS NULL;

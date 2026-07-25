@@ -1,0 +1,36 @@
+{
+  "name": "odls-platform",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@11.9.0",
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "pnpm -r --if-present run build",
+    "typecheck": "pnpm -r --if-present run build && pnpm -r --if-present run typecheck",
+    "test": "pnpm -r --if-present run build && pnpm -r --if-present run test",
+    "lint": "pnpm -r --if-present run lint",
+    "db:migrate": "pnpm --filter @odls/core-service run db:migrate",
+    "db:migrate:status": "pnpm --filter @odls/core-service run db:migrate:status",
+    "db:seed": "pnpm --filter @odls/core-service run db:seed",
+    "e2e": "playwright test",
+    "docker:prepare": "node scripts/prepare-docker.mjs",
+    "docker:build:core": "pnpm run docker:prepare && docker build -f Dockerfile.core -t odls-core-service .",
+    "docker:build:gateway": "pnpm run docker:prepare && docker build -f Dockerfile.gateway -t odls-api-gateway .",
+    "dev:gateway": "npm run dev -w @odls/api-gateway",
+    "dev:web": "npm run dev -w @odls/web",
+    "dev:core": "pnpm --filter @odls/core-service run dev"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.55.1",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.30.1"
+  }
+}

@@ -1,0 +1,43 @@
+import {randomUUID} from "node:crypto";
+import {Pool} from "pg";
+import {beforeAll,afterAll,describe,expect,it} from "vitest";
+import {FinanceService,type FinanceActor} from "../src/application/finance/finance-service.js";
+import {buildServer} from "../src/server.js";
+const url=process.env.DATABASE_URL,run=url?describe:describe.skip;
+run("Finance transaction and audit atomicity",()=>{
+ const pool=new Pool({connectionString:url}),service=new FinanceService(pool),actor:FinanceActor={id:"00000000-0000-4000-8000-000000000011",tenantId:"00000000-0000-4000-8000-000000000001",permissions:["finance.read","finance.create","finance.update","finance.delete"],correlationId:randomUUID()},client="00000000-0000-4000-8000-000000000041",project="00000000-0000-4000-8000-000000000071";
+ beforeAll(async()=>{await pool.query(`CREATE OR REPLACE FUNCTION finance_test_fail_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF (NEW.action='invoice.updated' AND NEW.metadata->'after'->>'notes'='FAIL_AUDIT') OR (NEW.action='payment.allocated' AND NEW.metadata->>'amount'='7.7777') OR (NEW.action='expense.approved' AND NEW.metadata->'before'->>'supplier'='FAIL_AUDIT') THEN RAISE EXCEPTION 'forced audit failure'; END IF; RETURN NEW; END $$; DROP TRIGGER IF EXISTS finance_test_fail_audit ON audit_logs; CREATE TRIGGER finance_test_fail_audit BEFORE INSERT ON audit_logs FOR EACH ROW EXECUTE FUNCTION finance_test_fail_audit()`);});
+ afterAll(async()=>{await pool.query("DROP TRIGGER IF EXISTS finance_test_fail_audit ON audit_logs; DROP FUNCTION IF EXISTS finance_test_fail_audit()");await pool.end();});
+ const invoice=()=>service.createInvoice(actor,{clientId:client,projectId:project,invoiceNumber:`AUD-${randomUUID()}`,currencyCode:"EUR",issueDate:"2026-01-01",dueDate:"2026-01-10",netAmount:"100.0000",vatRate:"0.0000"});
+ it("rolls back an Invoice mutation when mandatory audit insertion fails",async()=>{const x=await invoice();await expect(service.updateInvoice(actor,x.id,{expectedVersion:x.version,notes:"FAIL_AUDIT"})).rejects.toThrow("forced audit failure");expect(await service.getInvoice(actor,x.id)).toMatchObject({version:x.version,notes:null});});
+ it("rolls back Payment allocation and Invoice state when audit insertion fails",async()=>{let i=await invoice();i=await service.invoiceAction(actor,i.id,"issue",i.version);const p=await service.createPayment(actor,{clientId:client,reference:`AUD-${randomUUID()}`,currencyCode:"EUR",amount:"10.0000",paymentDate:"2026-01-02"});await expect(service.allocate(actor,p.id,i.id,"7.7777",p.version)).rejects.toThrow("forced audit failure");expect(await service.getPayment(actor,p.id)).toMatchObject({version:p.version,allocatedAmount:"0"});expect(await service.getInvoice(actor,i.id)).toMatchObject({status:"issued",paidAmount:"0.0000"});});
+ it("rolls back Expense lifecycle when audit insertion fails",async()=>{const e=await service.createExpense(actor,{projectId:project,supplier:"FAIL_AUDIT",category:"x",expenseDate:"2026-01-02",currencyCode:"EUR",netAmount:"1.0000",vatRate:"0.0000"});await expect(service.expenseAction(actor,e.id,"approve",e.version)).rejects.toThrow("forced audit failure");expect(await service.getExpense(actor,e.id)).toMatchObject({status:"draft",version:e.version});});
+ it("persists meaningful actor, tenant, entity and before/after audit data",async()=>{const x=await invoice(),updated=await service.updateInvoice(actor,x.id,{expectedVersion:x.version,notes:"audited"});const row=(await pool.query<any>("SELECT tenant_id,actor_id,entity_id,metadata FROM audit_logs WHERE action='invoice.updated' AND entity_id=$1 ORDER BY occurred_at DESC LIMIT 1",[x.id])).rows[0];expect(row).toMatchObject({tenant_id:actor.tenantId,actor_id:actor.id,entity_id:x.id});expect(row.metadata.before.version).toBe(x.version);expect(row.metadata.after.version).toBe(updated.version);});
+ it("persists every established Finance failure event and payment.archived",async()=>{
+  const app=buildServer();await app.ready();
+  const permissions=["finance.read","finance.create","finance.update","finance.delete","clients.create"],admin=app.jwt.sign({sub:actor.id,tenantId:actor.tenantId,email:"admin@demo.odls",permissions}),readonly=app.jwt.sign({sub:"00000000-0000-4000-8000-000000000014",tenantId:actor.tenantId,email:"readonly@demo.odls",permissions:["finance.read"]}),headers=(token:string)=>({authorization:`Bearer ${token}`});
+  const request=async(method:string,url:string,payload?:unknown,token=admin)=>{const response=await app.inject({method:method as any,url,headers:headers(token),payload:payload as any});return {response,body:response.json()};};
+  const invoiceBody={clientId:client,projectId:project,invoiceNumber:`ROUTE-${randomUUID()}`,currencyCode:"EUR",issueDate:"2026-01-01",dueDate:"2026-01-10",netAmount:"100.0000",vatRate:"0.0000"};
+  expect((await request("POST","/api/v1/invoices",invoiceBody,readonly)).response.statusCode).toBe(403);
+  const created=(await request("POST","/api/v1/invoices",invoiceBody)).body.data;
+  expect((await request("PATCH",`/api/v1/invoices/${created.id}`,{expectedVersion:created.version+99,notes:"stale"})).response.statusCode).toBe(409);
+  const issued=(await request("POST",`/api/v1/invoices/${created.id}/issue`,{expectedVersion:created.version})).body.data;
+  expect((await request("POST",`/api/v1/invoices/${created.id}/issue`,{expectedVersion:issued.version})).response.statusCode).toBe(422);
+  const archivedInvoice=(await request("DELETE",`/api/v1/invoices/${created.id}`,{expectedVersion:issued.version})).body.data;
+  expect((await request("PATCH",`/api/v1/invoices/${created.id}`,{expectedVersion:archivedInvoice.version,notes:"archived"})).response.statusCode).toBe(409);
+  const otherClient=(await request("POST","/api/v1/clients",{name:`Audit Client ${randomUUID()}`})).body.data;
+  const relationshipInvoice=(await request("POST","/api/v1/invoices",{...invoiceBody,invoiceNumber:`REL-${randomUUID()}`})).body.data;
+  const relationshipIssued=(await request("POST",`/api/v1/invoices/${relationshipInvoice.id}/issue`,{expectedVersion:relationshipInvoice.version})).body.data;
+  const relationshipPayment=(await request("POST","/api/v1/payments",{clientId:otherClient.id,reference:`REL-${randomUUID()}`,currencyCode:"EUR",amount:"1.0000",paymentDate:"2026-01-02"})).body.data;
+  expect((await request("POST",`/api/v1/payments/${relationshipPayment.id}/allocate`,{invoiceId:relationshipIssued.id,amount:"1.0000",expectedVersion:relationshipPayment.version})).response.statusCode).toBe(422);
+  const payment=(await request("POST","/api/v1/payments",{clientId:client,reference:`ARCH-${randomUUID()}`,currencyCode:"EUR",amount:"1.0000",paymentDate:"2026-01-02"})).body.data;
+  const reversed=(await request("POST",`/api/v1/payments/${payment.id}/reverse`,{expectedVersion:payment.version})).body.data;
+  const archivedPayment=(await request("DELETE",`/api/v1/payments/${payment.id}`,{expectedVersion:reversed.version})).body.data;
+  const actions=["finance.permission_denied","finance.version_conflict","finance.archived_mutation_denied","finance.invalid_lifecycle_transition","finance.invalid_relationship","payment.archived"];
+  const rows=(await pool.query<any>("SELECT action,tenant_id,actor_id,entity_id,metadata FROM audit_logs WHERE action=ANY($1) AND occurred_at>now()-interval '1 minute'",[actions])).rows;
+  for(const action of actions)expect(rows.some(row=>row.action===action)).toBe(true);
+  for(const row of rows.filter(row=>row.action.startsWith("finance."))){expect(row.tenant_id).toBe(actor.tenantId);expect(row.actor_id).toBeTruthy();expect(row.metadata.code).toBeTruthy();}
+  expect(rows.find(row=>row.action==="payment.archived"&&row.entity_id===archivedPayment.id)?.metadata).toMatchObject({before:{version:payment.version+1},after:{version:archivedPayment.version}});
+  await app.close();
+ });
+});
