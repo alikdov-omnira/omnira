@@ -1,0 +1,8 @@
+import {describe,expect,it} from "vitest";
+import {assertConvertible,validateCreate,validateUpdate} from "../src/domain/measurement-unit/measurement-unit-rules.js";
+const unit=(x:any)=>({id:crypto.randomUUID(),tenantId:crypto.randomUUID(),code:"M",symbol:"m",displayName:"Meter",description:null,dimension:"length",unitSystem:"metric",status:"active",decimalPrecision:3,canonicalBaseCode:"M",baseMultiplier:"1",isSystem:true,createdAt:"",updatedAt:"",version:1,...x});
+describe("measurement unit rules",()=>{
+ it("normalizes valid custom units",()=>expect(validateCreate({code:"box_1",symbol:"bx",displayName:"Box",dimension:"custom",unitSystem:"custom",decimalPrecision:2}).code).toBe("BOX_1"));
+ it("rejects invalid precision and factors",()=>{expect(()=>validateCreate({code:"X",symbol:"x",displayName:"X",dimension:"length",unitSystem:"custom",decimalPrecision:13})).toThrow();expect(()=>validateCreate({code:"X",symbol:"x",displayName:"X",dimension:"length",unitSystem:"custom",decimalPrecision:2,canonicalBaseCode:"M",baseMultiplier:"0"})).toThrow();expect(()=>validateUpdate({expectedVersion:1,baseMultiplier:"-2"})).toThrow();});
+ it("accepts compatible decimals and rejects incompatible or packaging conversions",()=>{expect(()=>assertConvertible(unit({}),unit({code:"CM",baseMultiplier:"0.01"}),"2.5")).not.toThrow();expect(()=>assertConvertible(unit({}),unit({dimension:"mass",canonicalBaseCode:"KG"}),"1")).toThrow(/incompatible/);expect(()=>assertConvertible(unit({dimension:"packaging",baseMultiplier:null,canonicalBaseCode:null}),unit({dimension:"packaging",baseMultiplier:null,canonicalBaseCode:null}),"1")).toThrow(/not convertible/);});
+});

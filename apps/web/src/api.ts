@@ -1,7 +1,7 @@
 import type {
   ClientContract,CreateClientRequest,CreateProjectRequest,CreatePropertyRequest,CreateTaskRequest,DocumentContract,DocumentVersionSchema,
   ExpenseContract,InvoiceContract,PaymentContract,ProjectContract,ProjectFinancialSummary,PropertyContract,TaskContract,UpdateClientRequest,UpdateProjectRequest,
-  UpdatePropertyRequest,UpdateTaskRequest,NotificationContract,NotificationPreferencesContract
+  UpdatePropertyRequest,UpdateTaskRequest,NotificationContract,NotificationPreferencesContract,MeasurementUnitContract
 } from "@odls/contracts";
 import {NotificationSchema,NotificationPreferencesSchema} from "@odls/contracts";
 
@@ -90,6 +90,11 @@ export const api={
   dashboard:(range=30)=>raw<any>(`/dashboard/executive?range=${range}`),
   projectHealth:()=>raw<any[]>("/dashboard/project-health"),
   report:(name:ReportName|"revenue"|"expenses"|"tasks",query="range=30&pageSize=25")=>envelope<ReportEnvelope>(`/reports/${name}?${query}`),
+  measurementUnits:(query:string)=>envelope<{data:MeasurementUnitContract[];pagination:{page:number;pageSize:number;total:number;totalPages:number}}>(`/measurement-units?${query}`),
+  createMeasurementUnit:(body:unknown)=>raw<MeasurementUnitContract>("/measurement-units",json("POST",body)),
+  updateMeasurementUnit:(id:string,body:unknown)=>raw<MeasurementUnitContract>(`/measurement-units/${id}`,json("PATCH",body)),
+  measurementUnitStatus:(id:string,action:"activate"|"deactivate",expectedVersion:number)=>raw<MeasurementUnitContract>(`/measurement-units/${id}/${action}`,json("POST",{expectedVersion})),
+  convertMeasurementUnit:(body:unknown)=>raw<{quantity:string;fromUnitId:string;toUnitId:string;result:string;precision:number}>("/measurement-units/convert",json("POST",body)),
   exportReport:async(name:ReportName,query="range=30")=>{const headers=new Headers();if(session)headers.set("authorization",`Bearer ${session.accessToken}`);const response=await fetch(`${base}/reports/${name}/export?${query}`,{headers});if(!response.ok){const body=await response.json().catch(()=>({}));throw new ApiError(response.status,body?.error?.code??"REQUEST_FAILED");}return {blob:await response.blob(),disposition:response.headers.get("content-disposition")};},
   logout:()=>session?raw<{revoked:boolean}>("/auth/logout",json("POST",{refreshToken:session.refreshToken})):Promise.resolve()
 };
