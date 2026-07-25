@@ -13,6 +13,7 @@ export type UpdateByResource={clients:UpdateClientRequest;properties:UpdatePrope
 export type ProjectAction="plan"|"start"|"pause"|"resume"|"complete"|"cancel";
 export type TaskAction="start"|"block"|"resume"|"complete"|"cancel";
 export type ReportName="accounts-receivable"|"profitability"|"deadlines"|"workload"|"documents"|"activity";
+export type ReportEnvelope={data:any[];pagination:{page:number;pageSize:number;total:number;totalPages:number};range:{start:string;endExclusive:string;timezone:"UTC"}};
 export function mergeNotifications(current:NotificationContract[],incoming:NotificationContract[]):NotificationContract[]{const merged=new Map(current.map(x=>[x.id,x]));for(const item of incoming)merged.set(item.id,item);return [...merged.values()].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));}
 
 export class ApiError extends Error {
@@ -40,12 +41,14 @@ async function raw<T>(path:string,init:RequestInit={},retried=false):Promise<T>{
   if(!response.ok){const problem=body?.error??body??{};throw new ApiError(response.status,problem.code??"REQUEST_FAILED",problem.correlationId??problem.requestId,problem.details??{});}
   return body?.data as T;
 }
+async function envelope<T>(path:string):Promise<T>{const headers=new Headers();if(session)headers.set("authorization",`Bearer ${session.accessToken}`);const response=await fetch(`${base}${path}`,{headers});const body=await response.json().catch(()=>null);if(!response.ok){const problem=body?.error??body??{};throw new ApiError(response.status,problem.code??"REQUEST_FAILED",problem.correlationId??problem.requestId,problem.details??{});}return body as T;}
 const json=(method:string,body:unknown):RequestInit=>({method,body:JSON.stringify(body)});
 export const api={
   login:(tenantSlug:string,email:string,password:string)=>raw<Session>("/auth/login",json("POST",{tenantSlug,email,password})),
   me:()=>raw<Session["user"]>("/auth/me"),
   company:()=>raw<{id:string;name:string;slug:string}>("/company"),
   list:<R extends Resource>(resource:R,search="")=>raw<EntityByResource[R][]>(`/${resource}?pageSize=100${search?`&search=${encodeURIComponent(search)}`:""}`),
+  get:<R extends Resource>(resource:R,id:string)=>raw<EntityByResource[R]>(`/${resource}/${id}`),
   create:<R extends Resource>(resource:R,body:CreateByResource[R])=>raw<EntityByResource[R]>(`/${resource}`,json("POST",body)),
   update:<R extends Resource>(resource:R,id:string,body:UpdateByResource[R])=>raw<EntityByResource[R]>(`/${resource}/${id}`,json("PATCH",body)),
   archive:<R extends Resource>(resource:R,id:string,expectedVersion:number)=>raw<EntityByResource[R]>(`/${resource}/${id}`,json("DELETE",{expectedVersion})),
@@ -54,6 +57,7 @@ export const api={
   assign:(taskId:string,userId:string,expectedVersion:number)=>raw<TaskContract>(`/tasks/${taskId}/assignees`,json("POST",{userId,expectedVersion})),
   unassign:(taskId:string,userId:string,expectedVersion:number)=>raw<TaskContract>(`/tasks/${taskId}/assignees/${userId}`,json("DELETE",{expectedVersion})),
   invoices:()=>raw<InvoiceContract[]>("/invoices?pageSize=100"),
+  invoice:(id:string)=>raw<InvoiceContract>(`/invoices/${id}`),
   createInvoice:(body:unknown)=>raw<InvoiceContract>("/invoices",json("POST",body)),
   updateInvoice:(id:string,body:unknown)=>raw<InvoiceContract>(`/invoices/${id}`,json("PATCH",body)),
   invoiceAction:(id:string,action:"issue"|"cancel",expectedVersion:number)=>raw<InvoiceContract>(`/invoices/${id}/${action}`,json("POST",{expectedVersion})),
@@ -70,6 +74,7 @@ export const api={
   archiveExpense:(id:string,expectedVersion:number)=>raw<ExpenseContract>(`/expenses/${id}`,json("DELETE",{expectedVersion})),
   projectFinancialSummary:(id:string)=>raw<ProjectFinancialSummary>(`/projects/${id}/financial-summary`),
   documents:()=>raw<DocumentContract[]>("/documents?pageSize=100"),
+  document:(id:string)=>raw<DocumentContract>(`/documents/${id}`),
   uploadDocument:(file:File,meta:{category:string;description:string;entityType:string;entityId:string})=>{const body=new FormData();for(const [k,v] of Object.entries(meta))body.append(k,v);body.append("file",file);return raw<DocumentContract>("/documents",{method:"POST",body});},
   updateDocument:(id:string,body:unknown)=>raw<DocumentContract>(`/documents/${id}`,json("PATCH",body)),
   archiveDocument:(id:string,expectedVersion:number)=>raw<DocumentContract>(`/documents/${id}`,json("DELETE",{expectedVersion})),
@@ -84,7 +89,7 @@ export const api={
   updateNotificationPreferences:(body:Partial<NotificationPreferencesContract>&{expectedVersion:number})=>raw<NotificationPreferencesContract>("/notification-preferences",json("PATCH",body)).then(x=>NotificationPreferencesSchema.parse(x)),
   dashboard:(range=30)=>raw<any>(`/dashboard/executive?range=${range}`),
   projectHealth:()=>raw<any[]>("/dashboard/project-health"),
-  report:(name:ReportName,query="range=30&pageSize=100")=>raw<any[]>(`/reports/${name}?${query}`),
+  report:(name:ReportName|"revenue"|"expenses"|"tasks",query="range=30&pageSize=25")=>envelope<ReportEnvelope>(`/reports/${name}?${query}`),
   exportReport:async(name:ReportName,query="range=30")=>{const headers=new Headers();if(session)headers.set("authorization",`Bearer ${session.accessToken}`);const response=await fetch(`${base}/reports/${name}/export?${query}`,{headers});if(!response.ok){const body=await response.json().catch(()=>({}));throw new ApiError(response.status,body?.error?.code??"REQUEST_FAILED");}return {blob:await response.blob(),disposition:response.headers.get("content-disposition")};},
   logout:()=>session?raw<{revoked:boolean}>("/auth/logout",json("POST",{refreshToken:session.refreshToken})):Promise.resolve()
 };

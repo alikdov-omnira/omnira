@@ -160,10 +160,12 @@ export const AnalyticsQuerySchema=z.object({
  range:z.coerce.number().pipe(z.union([z.literal(7),z.literal(30),z.literal(90)])).optional(),
  start:AnalyticsDateSchema.optional(),end:AnalyticsDateSchema.optional(),
  page:z.coerce.number().int().positive().default(1),pageSize:z.coerce.number().int().min(1).max(100).default(25),
- sortBy:z.enum(["name","date","status","amount"]).optional(),sortOrder:z.enum(["asc","desc"]).default("desc"),
+ sortBy:z.enum(["invoiceNumber","clientName","projectName","issueDate","dueDate","outstanding","status","margin","marginPercentage","title","bucket","displayName","openCount","overdueCount","filename","category","createdAt","occurredAt","action","actorName"]).optional(),sortOrder:z.enum(["asc","desc"]).default("desc"),
  groupBy:z.enum(["month","client","project","category"]).optional(),projectId:z.string().uuid().optional(),clientId:z.string().uuid().optional(),
- userId:z.string().uuid().optional(),currencyCode:CurrencySchema.optional(),status:z.string().max(40).optional(),category:z.string().max(100).optional(),
+ userId:z.string().uuid().optional(),actorId:z.string().uuid().optional(),currencyCode:CurrencySchema.optional(),status:z.string().max(40).optional(),category:z.string().max(100).optional(),domain:z.string().trim().max(100).optional(),
+ entityType:DocumentEntityTypeSchema.optional(),entityId:z.string().uuid().optional(),
  overdue:z.preprocess(v=>v==="true"?true:v==="false"?false:v,z.boolean()).optional(),
+ archived:z.preprocess(v=>v==="true"?true:v==="false"?false:v,z.boolean()).optional(),
  tenantId:z.never().optional()
 }).strict().refine(x=>(x.start&&x.end)||(!x.start&&!x.end),{message:"start and end must be supplied together"});
 export const AnalyticsReportParamsSchema=z.object({report:AnalyticsReportNameSchema});
