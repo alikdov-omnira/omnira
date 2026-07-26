@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 88" role="img" aria-labelledby="title">
+  <title id="title">OMNIRA</title>
+  <defs>
+    <linearGradient id="globe" x1="10" y1="12" x2="73" y2="76" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#65B7FF"/>
+      <stop offset=".55" stop-color="#2B8BEA"/>
+      <stop offset="1" stop-color="#FF9A4D"/>
+    </linearGradient>
+    <linearGradient id="orbit" x1="4" y1="66" x2="82" y2="24" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#65B7FF"/>
+      <stop offset="1" stop-color="#FF9A4D"/>
+    </linearGradient>
+  </defs>
+  <circle cx="44" cy="44" r="25" fill="none" stroke="url(#globe)" stroke-width="6"/>
+  <path d="M19 37h50M19 51h50M44 19c-9 9-13 18-13 25s4 16 13 25M44 19c9 9 13 18 13 25s-4 16-13 25" fill="none" stroke="url(#globe)" stroke-width="3" stroke-linecap="round"/>
+  <ellipse cx="44" cy="44" rx="38" ry="16" fill="none" stroke="url(#orbit)" stroke-width="4" transform="rotate(-18 44 44)"/>
+  <circle cx="78" cy="32" r="5" fill="#FF9A4D"/>
+  <text x="96" y="55" fill="#FFFFFF" font-family="Arial,Helvetica,sans-serif" font-size="38" font-weight="700" letter-spacing="4">OMNIRA</text>
+</svg>

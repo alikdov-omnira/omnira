@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 88 88" role="img" aria-labelledby="title">
+  <title id="title">OMNIRA</title>
+  <defs><linearGradient id="g" x1="10" y1="12" x2="78" y2="76" gradientUnits="userSpaceOnUse"><stop stop-color="#1769E0"/><stop offset=".6" stop-color="#2B8BEA"/><stop offset="1" stop-color="#F47A22"/></linearGradient></defs>
+  <rect width="88" height="88" rx="18" fill="#0C2340"/>
+  <circle cx="44" cy="44" r="23" fill="none" stroke="url(#g)" stroke-width="6"/>
+  <path d="M21 38h46M21 50h46M44 21c-8 8-12 16-12 23s4 15 12 23M44 21c8 8 12 16 12 23s-4 15-12 23" fill="none" stroke="url(#g)" stroke-width="3" stroke-linecap="round"/>
+  <ellipse cx="44" cy="44" rx="35" ry="15" fill="none" stroke="url(#g)" stroke-width="4" transform="rotate(-18 44 44)"/>
+  <circle cx="75" cy="33" r="5" fill="#F47A22"/>
+</svg>
