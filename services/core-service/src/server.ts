@@ -23,6 +23,8 @@ import type {AnalyticsActor} from "./domain/analytics/analytics-types.js";
 import {MeasurementUnitService,type MeasurementUnitActor} from "./application/measurement-unit/measurement-unit-service.js";
 import {WorkCatalogService,type WorkCatalogActor} from "./application/work-catalog/work-catalog-service.js";
 import {MaterialCatalogService,type MaterialCatalogActor} from "./application/material-catalog/material-catalog-service.js";
+import {PriceListService,type PriceListActor} from "./application/price-list/price-list-service.js";
+import {CreatePriceListItemRequestSchema,CreatePriceListRequestSchema,PriceListIdParamsSchema,PriceListItemQuerySchema,PriceListQuerySchema,PriceListStatusRequestSchema,UpdatePriceListItemRequestSchema,UpdatePriceListRequestSchema} from "@odls/contracts";
 
 dotenv.config({ path: join(import.meta.dirname, "../../../../.env") });
 
@@ -47,6 +49,7 @@ export function buildServer(): FastifyInstance<any, any, any, any> {
   const measurementUnitService=pool?new MeasurementUnitService(pool):undefined;
   const workCatalogService=pool?new WorkCatalogService(pool):undefined;
   const materialCatalogService=pool?new MaterialCatalogService(pool):undefined;
+  const priceListService=pool?new PriceListService(pool):undefined;
   const jwtSecret = process.env.JWT_SECRET ?? "development-only-secret-change-me-32chars";
   void app.register(helmet); void app.register(jwt, { secret:jwtSecret }); void app.register(multipart,{limits:{fileSize:Number(process.env.DOCUMENT_MAX_BYTES??10_485_760),files:1,fields:8}});
   app.decorateRequest("claims", null);
@@ -60,6 +63,8 @@ export function buildServer(): FastifyInstance<any, any, any, any> {
   function workCatalogActor(request:any):WorkCatalogActor{return {id:request.claims.sub,tenantId:request.claims.tenantId,permissions:request.claims.permissions,correlationId:String(request.headers["x-correlation-id"]??request.id)};}
   function materialCatalog(){if(!materialCatalogService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return materialCatalogService;}
   function materialCatalogActor(request:any):MaterialCatalogActor{return {id:request.claims.sub,tenantId:request.claims.tenantId,permissions:request.claims.permissions,correlationId:String(request.headers["x-correlation-id"]??request.id)};}
+  function priceLists(){if(!priceListService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return priceListService;}
+  function priceListActor(request:any):PriceListActor{return {id:request.claims.sub,tenantId:request.claims.tenantId,permissions:request.claims.permissions,correlationId:String(request.headers["x-correlation-id"]??request.id)};}
   function clientActor(request:any):ClientActor{return {id:request.claims.sub,tenantId:request.claims.tenantId,permissions:request.claims.permissions,correlationId:String(request.headers["x-correlation-id"]??request.id)};}
   function properties(){if(!propertyService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return propertyService;}
   function propertyActor(request:any):PropertyActor{return {id:request.claims.sub,tenantId:request.claims.tenantId,permissions:request.claims.permissions,correlationId:String(request.headers["x-correlation-id"]??request.id)};}
@@ -116,6 +121,16 @@ export function buildServer(): FastifyInstance<any, any, any, any> {
   app.get("/api/v1/materials/:id",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await materialCatalog().getMaterial(materialCatalogActor(request),MaterialCatalogIdParamsSchema.parse(request.params).id)})));
   app.patch("/api/v1/materials/:id",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await materialCatalog().updateMaterial(materialCatalogActor(request),MaterialCatalogIdParamsSchema.parse(request.params).id,UpdateMaterialRequestSchema.parse(request.body))})));
   for(const status of ["activate","deactivate"] as const)app.post(`/api/v1/materials/:id/${status}`,{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await materialCatalog().materialStatus(materialCatalogActor(request),MaterialCatalogIdParamsSchema.parse(request.params).id,status==="activate"?"active":"inactive",MaterialCatalogStatusRequestSchema.parse(request.body).expectedVersion)})));
+  app.get("/api/v1/price-lists",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const r=await priceLists().list(priceListActor(request),PriceListQuerySchema.parse(request.query));return {data:r.items,pagination:r.pagination};}));
+  app.get("/api/v1/price-lists/:id",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await priceLists().get(priceListActor(request),PriceListIdParamsSchema.parse(request.params).id)})));
+  app.post("/api/v1/price-lists",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await priceLists().create(priceListActor(request),CreatePriceListRequestSchema.parse(request.body))}),201));
+  app.patch("/api/v1/price-lists/:id",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await priceLists().update(priceListActor(request),PriceListIdParamsSchema.parse(request.params).id,UpdatePriceListRequestSchema.parse(request.body))})));
+  app.patch("/api/v1/price-lists/:id/status",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const x=PriceListStatusRequestSchema.parse(request.body);return {data:await priceLists().status(priceListActor(request),PriceListIdParamsSchema.parse(request.params).id,x.status,x.expectedVersion)};}));
+  app.get("/api/v1/price-list-items",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const r=await priceLists().items(priceListActor(request),PriceListItemQuerySchema.parse(request.query));return {data:r.items,pagination:r.pagination};}));
+  app.get("/api/v1/price-list-items/:id",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await priceLists().getItem(priceListActor(request),PriceListIdParamsSchema.parse(request.params).id)})));
+  app.post("/api/v1/price-list-items",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await priceLists().createItem(priceListActor(request),CreatePriceListItemRequestSchema.parse(request.body))}),201));
+  app.patch("/api/v1/price-list-items/:id",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await priceLists().updateItem(priceListActor(request),PriceListIdParamsSchema.parse(request.params).id,UpdatePriceListItemRequestSchema.parse(request.body))})));
+  app.patch("/api/v1/price-list-items/:id/status",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const x=PriceListStatusRequestSchema.parse(request.body);return {data:await priceLists().itemStatus(priceListActor(request),PriceListIdParamsSchema.parse(request.params).id,x.status,x.expectedVersion)};}));
   app.get("/api/v1/users",{preHandler:[authenticate,authorize("users.read")]},async (request:any) => ({data:(await (await db()).query("SELECT id,email,display_name,is_disabled,version FROM users WHERE tenant_id=$1 AND deleted_at IS NULL ORDER BY display_name",[request.claims.tenantId])).rows}));
   app.get("/api/v1/users/:id",{preHandler:[authenticate,authorize("users.read")]},async (request:any,reply) => { const row=(await (await db()).query("SELECT id,email,display_name,is_disabled,version FROM users WHERE id=$1 AND tenant_id=$2 AND deleted_at IS NULL",[request.params.id,request.claims.tenantId])).rows[0]; return row?{data:row}:reply.code(404).send({code:"not_found"}); });
   app.get("/api/v1/clients",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const query=ClientListQuerySchema.parse(request.query);const result=await clients().listClients(clientActor(request),query);return {data:result.items,pagination:result.pagination};}));

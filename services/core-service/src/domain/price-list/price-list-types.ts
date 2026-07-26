@@ -1,0 +1,10 @@
+export type PriceListStatus="active"|"inactive";
+export type PriceList={id:string;tenantId:string;code:string;displayName:string;description:string|null;currency:string;country:string;region:string|null;validFrom:string;validTo:string|null;status:PriceListStatus;isSystem:boolean;version:number;createdAt:string;updatedAt:string;createdBy:string;updatedBy:string};
+export type PriceListItem={id:string;tenantId:string;priceListId:string;priceListCode:string;materialId:string;materialCode:string;materialName:string;unitPrice:string;vatRate:string;discountPercent:string;currency:string;validFrom:string;validTo:string|null;status:PriceListStatus;version:number;createdAt:string;updatedAt:string;createdBy:string;updatedBy:string};
+export type CreatePriceList={code:string;displayName:string;description?:string;currency:string;country:string;region?:string;validFrom:string;validTo?:string|null};
+export type UpdatePriceList={expectedVersion:number;displayName?:string;description?:string|null;currency?:string;country?:string;region?:string|null;validFrom?:string;validTo?:string|null};
+export type CreatePriceListItem={priceListId:string;materialId:string;unitPrice:string;vatRate:string;discountPercent:string;currency:string;validFrom:string;validTo?:string|null};
+export type UpdatePriceListItem={expectedVersion:number;unitPrice?:string;vatRate?:string;discountPercent?:string;currency?:string;validFrom?:string;validTo?:string|null};
+export type PriceListQuery={page:number;pageSize:number;search?:string;currency?:string;country?:string;active?:boolean;validOn?:string;sortBy:"code"|"displayName"|"currency"|"country"|"validFrom"|"status"|"updatedAt";sortOrder:"asc"|"desc"};
+export type PriceListItemQuery={page:number;pageSize:number;search?:string;priceListId?:string;materialId?:string;currency?:string;active?:boolean;validOn?:string;sortBy:"material"|"unitPrice"|"currency"|"validFrom"|"status"|"updatedAt";sortOrder:"asc"|"desc"};
+export type PricePage<T>={items:T[];pagination:{page:number;pageSize:number;total:number;totalPages:number}};

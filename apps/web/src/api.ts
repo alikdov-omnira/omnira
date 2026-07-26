@@ -1,7 +1,7 @@
 import type {
   ClientContract,CreateClientRequest,CreateProjectRequest,CreatePropertyRequest,CreateTaskRequest,DocumentContract,DocumentVersionSchema,
   ExpenseContract,InvoiceContract,PaymentContract,ProjectContract,ProjectFinancialSummary,PropertyContract,TaskContract,UpdateClientRequest,UpdateProjectRequest,
-  UpdatePropertyRequest,UpdateTaskRequest,NotificationContract,NotificationPreferencesContract,MeasurementUnitContract,WorkCategoryContract,WorkCategoryNodeContract,WorkItemContract,MaterialCategoryContract,MaterialCategoryNodeContract,MaterialContract
+  UpdatePropertyRequest,UpdateTaskRequest,NotificationContract,NotificationPreferencesContract,MeasurementUnitContract,WorkCategoryContract,WorkCategoryNodeContract,WorkItemContract,MaterialCategoryContract,MaterialCategoryNodeContract,MaterialContract,PriceListContract,PriceListItemContract
 } from "@odls/contracts";
 import {NotificationSchema,NotificationPreferencesSchema} from "@odls/contracts";
 
@@ -115,6 +115,14 @@ export const api={
   createMaterial:(body:unknown)=>raw<MaterialContract>("/materials",json("POST",body)),
   updateMaterial:(id:string,body:unknown)=>raw<MaterialContract>(`/materials/${id}`,json("PATCH",body)),
   materialStatus:(id:string,action:"activate"|"deactivate",expectedVersion:number)=>raw<MaterialContract>(`/materials/${id}/${action}`,json("POST",{expectedVersion})),
+  priceLists:(query:string)=>envelope<{data:PriceListContract[];pagination:{page:number;pageSize:number;total:number;totalPages:number}}>(`/price-lists?${query}`),
+  createPriceList:(body:unknown)=>raw<PriceListContract>("/price-lists",json("POST",body)),
+  updatePriceList:(id:string,body:unknown)=>raw<PriceListContract>(`/price-lists/${id}`,json("PATCH",body)),
+  priceListStatus:(id:string,status:"active"|"inactive",expectedVersion:number)=>raw<PriceListContract>(`/price-lists/${id}/status`,json("PATCH",{status,expectedVersion})),
+  priceListItems:(query:string)=>envelope<{data:PriceListItemContract[];pagination:{page:number;pageSize:number;total:number;totalPages:number}}>(`/price-list-items?${query}`),
+  createPriceListItem:(body:unknown)=>raw<PriceListItemContract>("/price-list-items",json("POST",body)),
+  updatePriceListItem:(id:string,body:unknown)=>raw<PriceListItemContract>(`/price-list-items/${id}`,json("PATCH",body)),
+  priceListItemStatus:(id:string,status:"active"|"inactive",expectedVersion:number)=>raw<PriceListItemContract>(`/price-list-items/${id}/status`,json("PATCH",{status,expectedVersion})),
   exportReport:async(name:ReportName,query="range=30")=>{const headers=new Headers();if(session)headers.set("authorization",`Bearer ${session.accessToken}`);const response=await fetch(`${base}/reports/${name}/export?${query}`,{headers});if(!response.ok){const body=await response.json().catch(()=>({}));throw new ApiError(response.status,body?.error?.code??"REQUEST_FAILED");}return {blob:await response.blob(),disposition:response.headers.get("content-disposition")};},
   logout:()=>session?raw<{revoked:boolean}>("/auth/logout",json("POST",{refreshToken:session.refreshToken})):Promise.resolve()
 };
