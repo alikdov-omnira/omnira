@@ -1,7 +1,7 @@
 import type {
   ClientContract,CreateClientRequest,CreateProjectRequest,CreatePropertyRequest,CreateTaskRequest,DocumentContract,DocumentVersionSchema,
   ExpenseContract,InvoiceContract,PaymentContract,ProjectContract,ProjectFinancialSummary,PropertyContract,TaskContract,UpdateClientRequest,UpdateProjectRequest,
-  UpdatePropertyRequest,UpdateTaskRequest,NotificationContract,NotificationPreferencesContract,MeasurementUnitContract,WorkCategoryContract,WorkCategoryNodeContract,WorkItemContract
+  UpdatePropertyRequest,UpdateTaskRequest,NotificationContract,NotificationPreferencesContract,MeasurementUnitContract,WorkCategoryContract,WorkCategoryNodeContract,WorkItemContract,MaterialCategoryContract,MaterialCategoryNodeContract,MaterialContract
 } from "@odls/contracts";
 import {NotificationSchema,NotificationPreferencesSchema} from "@odls/contracts";
 
@@ -105,6 +105,16 @@ export const api={
   createWorkItem:(body:unknown)=>raw<WorkItemContract>("/work-items",json("POST",body)),
   updateWorkItem:(id:string,body:unknown)=>raw<WorkItemContract>(`/work-items/${id}`,json("PATCH",body)),
   workItemStatus:(id:string,action:"activate"|"deactivate",expectedVersion:number)=>raw<WorkItemContract>(`/work-items/${id}/${action}`,json("POST",{expectedVersion})),
+  materialCategories:(query:string)=>envelope<{data:MaterialCategoryContract[];pagination:{page:number;pageSize:number;total:number;totalPages:number}}>(`/material-categories?${query}`),
+  materialCategoryTree:()=>raw<MaterialCategoryNodeContract[]>("/material-categories/tree"),
+  createMaterialCategory:(body:unknown)=>raw<MaterialCategoryContract>("/material-categories",json("POST",body)),
+  updateMaterialCategory:(id:string,body:unknown)=>raw<MaterialCategoryContract>(`/material-categories/${id}`,json("PATCH",body)),
+  moveMaterialCategory:(id:string,body:unknown)=>raw<MaterialCategoryContract>(`/material-categories/${id}/move`,json("POST",body)),
+  materialCategoryStatus:(id:string,action:"activate"|"deactivate",expectedVersion:number)=>raw<MaterialCategoryContract>(`/material-categories/${id}/${action}`,json("POST",{expectedVersion})),
+  materials:(query:string)=>envelope<{data:MaterialContract[];pagination:{page:number;pageSize:number;total:number;totalPages:number}}>(`/materials?${query}`),
+  createMaterial:(body:unknown)=>raw<MaterialContract>("/materials",json("POST",body)),
+  updateMaterial:(id:string,body:unknown)=>raw<MaterialContract>(`/materials/${id}`,json("PATCH",body)),
+  materialStatus:(id:string,action:"activate"|"deactivate",expectedVersion:number)=>raw<MaterialContract>(`/materials/${id}/${action}`,json("POST",{expectedVersion})),
   exportReport:async(name:ReportName,query="range=30")=>{const headers=new Headers();if(session)headers.set("authorization",`Bearer ${session.accessToken}`);const response=await fetch(`${base}/reports/${name}/export?${query}`,{headers});if(!response.ok){const body=await response.json().catch(()=>({}));throw new ApiError(response.status,body?.error?.code??"REQUEST_FAILED");}return {blob:await response.blob(),disposition:response.headers.get("content-disposition")};},
   logout:()=>session?raw<{revoked:boolean}>("/auth/logout",json("POST",{refreshToken:session.refreshToken})):Promise.resolve()
 };
