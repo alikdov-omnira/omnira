@@ -1,0 +1,10 @@
+import {domainErrors} from "../domain/errors.js";
+type Actor={permissions:readonly string[]};
+const requirePermission=(actor:Actor,permission:string)=>{if(!actor.permissions.includes(permission))throw domainErrors.forbidden();};
+export const assertCanReadLaborRates=(actor:Actor)=>requirePermission(actor,"labor_rates.read");
+export const assertCanCreateLaborRate=(actor:Actor)=>requirePermission(actor,"labor_rates.create");
+export const assertCanUpdateLaborRate=(actor:Actor)=>requirePermission(actor,"labor_rates.update");
+export const assertCanActivateLaborRate=(actor:Actor)=>requirePermission(actor,"labor_rates.activate");
+export const assertCanDeactivateLaborRate=(actor:Actor)=>requirePermission(actor,"labor_rates.deactivate");
+export const assertCanReadSystemLaborRates=(actor:Actor)=>requirePermission(actor,"labor_rates.system_defaults.read");
+export const assertCanManageSystemLaborRates=(actor:Actor)=>requirePermission(actor,"labor_rates.system_defaults.manage");
