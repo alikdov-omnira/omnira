@@ -1,0 +1,16 @@
+import sharp from "sharp";
+import {access,stat} from "node:fs/promises";
+import {afterAll,describe,expect,it} from "vitest";
+import {TesseractOcrProvider} from "../src/infrastructure/ocr/tesseract-ocr-provider.js";
+describe("local Tesseract OCR provider",()=>{
+ const provider=new TesseractOcrProvider();afterAll(()=>provider.close());
+ async function image(text:string){return sharp(Buffer.from(`<svg width="900" height="180"><rect width="100%" height="100%" fill="white"/><text x="30" y="115" font-family="Arial" font-size="72" fill="black">${text}</text></svg>`)).png().toBuffer();}
+ it("recognizes a real English image deterministically",async()=>{const input={bytes:await image("OMNIRA CONSTRUCTION 2026"),languages:["eng"] as const,timeoutMs:120000,maxCharacters:10000},a=await provider.recognize({...input,languages:[...input.languages]}),b=await provider.recognize({...input,languages:[...input.languages]});expect(a.rawText.toUpperCase()).toContain("OMNIRA");expect(b.rawText.trim()).toBe(a.rawText.trim());expect(a.confidence).toBeGreaterThan(0);});
+ it("recognizes Polish with the bundled model",async()=>{const result=await provider.recognize({bytes:await image("FAKTURA POLSKA"),languages:["pol"],timeoutMs:120000,maxCharacters:10000});expect(result.rawText.toUpperCase()).toContain("FAKTURA");});
+ it("recognizes Russian with the bundled model",async()=>{const result=await provider.recognize({bytes:await image("ДОКУМЕНТ РОССИЯ"),languages:["rus"],timeoutMs:120000,maxCharacters:10000});expect(result.rawText.toUpperCase()).toContain("ДОКУМЕНТ");});
+ it("recognizes Ukrainian with the bundled model",async()=>{const result=await provider.recognize({bytes:await image("ДОКУМЕНТ УКРАЇНА"),languages:["ukr"],timeoutMs:120000,maxCharacters:10000});expect(result.rawText.toUpperCase()).toContain("ДОКУМЕНТ");});
+ it("handles an empty image and enforces the output limit",async()=>{const blank=await sharp({create:{width:300,height:100,channels:3,background:"white"}}).png().toBuffer();expect((await provider.recognize({bytes:blank,languages:["eng"],timeoutMs:120000,maxCharacters:100})).rawText.trim()).toBe("");await expect(provider.recognize({bytes:await image("OMNIRA"),languages:["eng"],timeoutMs:120000,maxCharacters:1})).rejects.toMatchObject({code:"OCR_OUTPUT_INVALID"});});
+ it("times out safely and remains reusable",async()=>{await expect(provider.recognize({bytes:await image("TIMEOUT"),languages:["ukr"],timeoutMs:1,maxCharacters:1000})).rejects.toMatchObject({code:"OCR_TIMEOUT"});expect((await provider.recognize({bytes:await image("OMNIRA"),languages:["eng"],timeoutMs:120000,maxCharacters:1000})).rawText.toUpperCase()).toContain("OMNIRA");});
+ it("rejects corrupt input with a sanitized error",async()=>{await expect(provider.recognize({bytes:Buffer.from("bad"),languages:["eng"],timeoutMs:5000,maxCharacters:100})).rejects.toMatchObject({code:"OCR_PROCESSING_FAILED",message:"OCR processing failed"});});
+ it("uses a private model directory and removes it on close",async()=>{const isolated=new TesseractOcrProvider();await isolated.recognize({bytes:await image("CLEANUP"),languages:["eng"],timeoutMs:120000,maxCharacters:1000});const directory=await (isolated as any).directory;expect((await stat(directory)).mode&0o777).toBe(0o700);await isolated.close();await expect(access(directory)).rejects.toThrow();});
+});

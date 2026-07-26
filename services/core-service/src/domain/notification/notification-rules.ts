@@ -18,7 +18,13 @@ const copy:Record<NotificationEventType,{title:string;body:string;severity:Notif
  "expense.rejected":{title:"Expense rejected",body:"An expense was rejected.",severity:"warning"},
  "document.uploaded":{title:"Document uploaded",body:"A new document was uploaded.",severity:"info"},
  "document.version_created":{title:"Document version created",body:"A new document version was uploaded.",severity:"info"},
- "document.archived":{title:"Document archived",body:"A document was archived.",severity:"warning"}
+ "document.archived":{title:"Document archived",body:"A document was archived.",severity:"warning"},
+ "document.page_ocr_requested":{title:"OCR requested",body:"Text recognition was requested for a document page.",severity:"info"},
+ "document.page_ocr_started":{title:"OCR started",body:"Text recognition started for a document page.",severity:"info"},
+ "document.page_ocr_completed":{title:"OCR completed",body:"Text recognition completed for a document page.",severity:"success"},
+ "document.page_ocr_failed":{title:"OCR failed",body:"Text recognition failed for a document page.",severity:"warning"},
+ "document.page_ocr_retried":{title:"OCR retried",body:"Text recognition was queued for retry.",severity:"info"},
+ "document.page_ocr_cancelled":{title:"OCR cancelled",body:"Text recognition was cancelled.",severity:"warning"}
 };
 export const notificationCopy=(eventType:NotificationEventType)=>copy[eventType];
 export const deduplicationKey=(eventType:NotificationEventType,entityId:string,recipientId:string,windowKey="event")=>createHash("sha256").update(`${eventType}:${entityId}:${recipientId}:${windowKey}`).digest("hex");

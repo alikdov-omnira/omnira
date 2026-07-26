@@ -33,6 +33,9 @@ import {EstimateEngineService,type EstimateActor} from "./application/estimate-e
 import {CreateLaborRateRequestSchema,CreateSystemLaborRateRequestSchema,LaborRateIdParamsSchema,LaborRateLifecycleRequestSchema,LaborRateListQuerySchema,ResolveLaborRateRequestSchema,UpdateLaborRateRequestSchema,UpdateSystemLaborRateRequestSchema} from "@odls/contracts";
 import {LaborRateCatalogService,type LaborRateActor} from "./application/labor-rate-catalog/labor-rate-catalog-service.js";
 import {LaborRateCatalogRepository} from "./infrastructure/labor-rate-catalog/labor-rate-catalog-repository.js";
+import {ListOcrJobsQuerySchema,OcrJobParamsSchema,OcrJobVersionRequestSchema,RequestPageOcrRequestSchema} from "@odls/contracts";
+import {OcrService} from "./application/ocr/ocr-service.js";
+import {TesseractOcrProvider} from "./infrastructure/ocr/tesseract-ocr-provider.js";
 
 dotenv.config({ path: join(import.meta.dirname, "../../../../.env") });
 
@@ -62,11 +65,13 @@ export function buildServer(): FastifyInstance<any, any, any, any> {
   const normCatalogService=pool?new NormCatalogService(pool):undefined;
   const estimateEngineService=pool?new EstimateEngineService(pool):undefined;
   const laborRateService=pool?new LaborRateCatalogService(new LaborRateCatalogRepository(pool)):undefined;
+  const ocrProvider=pool?new TesseractOcrProvider():undefined;
+  const ocrService=pool&&ocrProvider?new OcrService(pool,ocrProvider):undefined;
   const jwtSecret = process.env.JWT_SECRET ?? "development-only-secret-change-me-32chars";
   void app.register(helmet); void app.register(jwt, { secret:jwtSecret }); void app.register(multipart,{limits:{fileSize:scannerEnvironmentInteger("SCANNER_MAX_UPLOAD_BYTES",25*1024*1024,1,1024*1024*1024),files:1,fields:12}});
   app.decorateRequest("claims", null);
   app.addHook("onRequest", async (request) => { request.headers["x-correlation-id"] ??= request.id; });
-  app.addHook("onClose", async () => { await pool?.end(); });
+  app.addHook("onClose", async () => { await ocrProvider?.close();await pool?.end(); });
   async function db() { if (!pool) throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"}); return pool; }
   function clients(){if(!clientService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return clientService;}
   function measurementUnits(){if(!measurementUnitService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return measurementUnitService;}
@@ -94,6 +99,7 @@ export function buildServer(): FastifyInstance<any, any, any, any> {
   function financeActor(request:any):FinanceActor{return {id:request.claims.sub,tenantId:request.claims.tenantId,permissions:request.claims.permissions,correlationId:String(request.headers["x-correlation-id"]??request.id)};}
   function documents(){if(!documentService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return documentService;}
   function documentPages(){if(!documentPageService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return documentPageService;}
+  function ocr(){if(!ocrService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return ocrService;}
   function notifications(){if(!notificationService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return notificationService;}
   function notificationActor(request:any):NotificationActor{return {id:request.claims.sub,tenantId:request.claims.tenantId,permissions:request.claims.permissions,correlationId:String(request.headers["x-correlation-id"]??request.id)};}
   function analytics(){if(!analyticsService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return analyticsService;}
@@ -253,6 +259,12 @@ export function buildServer(): FastifyInstance<any, any, any, any> {
   app.get("/api/v1/documents/:documentId/pages/:pageId/content",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const p=DocumentPageParamsSchema.parse(request.params),file=await documentPages().content(financeActor(request),p.documentId,p.pageId);return reply.header("content-type",file.mimeType).header("content-length",file.sizeBytes).header("content-disposition",`inline; filename*=UTF-8''${encodeURIComponent(file.originalFilename)}`).header("x-document-page-content",file.contentVariant).header("x-content-type-options","nosniff").header("cache-control","private, no-store").send(file.bytes);}));
   app.patch("/api/v1/documents/:id/pages/reorder",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await documentPages().reorder(financeActor(request),DocumentIdParamsSchema.parse(request.params).id,ReorderDocumentPagesRequestSchema.parse(request.body))})));
   app.delete("/api/v1/documents/:documentId/pages/:pageId",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const p=DocumentPageParamsSchema.parse(request.params);return {data:await documentPages().delete(financeActor(request),p.documentId,p.pageId,DeleteDocumentPageRequestSchema.parse(request.body))};}));
+  app.post("/api/v1/documents/:documentId/pages/:pageId/ocr",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const p=DocumentPageParamsSchema.parse(request.params);return {data:await ocr().request(financeActor(request),p.documentId,p.pageId,RequestPageOcrRequestSchema.parse(request.body))};},201));
+  app.get("/api/v1/documents/:documentId/pages/:pageId/ocr",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const p=DocumentPageParamsSchema.parse(request.params);return {data:await ocr().result(financeActor(request),p.documentId,p.pageId)};}));
+  app.get("/api/v1/ocr/jobs/:jobId",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await ocr().getJob(financeActor(request),OcrJobParamsSchema.parse(request.params).jobId)})));
+  app.get("/api/v1/ocr/jobs",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const x=await ocr().list(financeActor(request),ListOcrJobsQuerySchema.parse(request.query));return {data:x.items,pagination:x.pagination};}));
+  app.post("/api/v1/ocr/jobs/:jobId/retry",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await ocr().retry(financeActor(request),OcrJobParamsSchema.parse(request.params).jobId,OcrJobVersionRequestSchema.parse(request.body).expectedVersion)})));
+  app.post("/api/v1/ocr/jobs/:jobId/cancel",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await ocr().cancel(financeActor(request),OcrJobParamsSchema.parse(request.params).jobId,OcrJobVersionRequestSchema.parse(request.body).expectedVersion)})));
   app.get("/api/v1/notifications",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const result=await notifications().list(notificationActor(request),NotificationListQuerySchema.parse(request.query));return {data:result.items,pagination:result.pagination};}));
   app.get("/api/v1/notifications/unread-count",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:{count:await notifications().unreadCount(notificationActor(request))}})));
   app.get("/api/v1/notifications/:id",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await notifications().get(notificationActor(request),NotificationIdParamsSchema.parse(request.params).id)})));
