@@ -6,7 +6,7 @@ import {NotificationWorker} from "../src/application/notification/notification-w
 import {NotificationService,type NotificationActor} from "../src/application/notification/notification-service.js";
 const url=process.env.DATABASE_URL,run=url?describe:describe.skip;
 run("Notifications PostgreSQL integration",()=>{
- const pool=new Pool({connectionString:url}),worker=new NotificationWorker(pool,{clock:()=>new Date("2026-07-26T12:00:00Z"),batchSize:500}),notifications=new NotificationService(pool);
+ const pool=new Pool({connectionString:url}),worker=new NotificationWorker(pool,{clock:()=>new Date("2026-07-26T23:59:00Z"),batchSize:500}),notifications=new NotificationService(pool);
  const admin={id:"00000000-0000-4000-8000-000000000011",tenantId:"00000000-0000-4000-8000-000000000001",permissions:["tasks.read","tasks.create","tasks.update","tasks.assign"],correlationId:randomUUID()};
  const recipient:NotificationActor={id:"00000000-0000-4000-8000-000000000012",tenantId:admin.tenantId,permissions:["notifications.read","notifications.update"],correlationId:randomUUID()},other={...recipient,id:"00000000-0000-4000-8000-000000000015",tenantId:"00000000-0000-4000-8000-000000000002"};
  beforeAll(async()=>{await pool.query("SELECT 1");});afterAll(()=>pool.end());

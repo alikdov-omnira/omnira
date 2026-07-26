@@ -1,0 +1,10 @@
+export type NormStatus="active"|"inactive";
+export type ConstructionNorm={id:string;tenantId:string;code:string;displayName:string;workId:string;workCode:string;workName:string;description:string|null;status:NormStatus;isSystem:boolean;version:number;createdAt:string;updatedAt:string;createdBy:string;updatedBy:string};
+export type ConstructionNormItem={id:string;tenantId:string;normId:string;normCode:string;materialId:string;materialCode:string;materialName:string;quantity:string;wastePercent:string;measurementUnitId:string;measurementUnitCode:string;version:number;createdAt:string;updatedAt:string;createdBy:string;updatedBy:string};
+export type CreateConstructionNorm={code:string;displayName:string;workId:string;description?:string};
+export type UpdateConstructionNorm={expectedVersion:number;displayName?:string;workId?:string;description?:string|null};
+export type CreateConstructionNormItem={normId:string;materialId:string;quantity:string;wastePercent:string;measurementUnitId:string};
+export type UpdateConstructionNormItem={expectedVersion:number;quantity?:string;wastePercent?:string;measurementUnitId?:string};
+export type ConstructionNormQuery={page:number;pageSize:number;search?:string;workId?:string;active?:boolean;isSystem?:boolean;sortBy:"code"|"displayName"|"work"|"status"|"createdAt"|"updatedAt";sortOrder:"asc"|"desc"};
+export type ConstructionNormItemQuery={page:number;pageSize:number;search?:string;normId?:string;materialId?:string;measurementUnitId?:string;sortBy:"material"|"quantity"|"wastePercent"|"measurementUnit"|"updatedAt";sortOrder:"asc"|"desc"};
+export type NormPage<T>={items:T[];pagination:{page:number;pageSize:number;total:number;totalPages:number}};

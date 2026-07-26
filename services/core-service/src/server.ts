@@ -25,6 +25,8 @@ import {WorkCatalogService,type WorkCatalogActor} from "./application/work-catal
 import {MaterialCatalogService,type MaterialCatalogActor} from "./application/material-catalog/material-catalog-service.js";
 import {PriceListService,type PriceListActor} from "./application/price-list/price-list-service.js";
 import {CreatePriceListItemRequestSchema,CreatePriceListRequestSchema,PriceListIdParamsSchema,PriceListItemQuerySchema,PriceListQuerySchema,PriceListStatusRequestSchema,UpdatePriceListItemRequestSchema,UpdatePriceListRequestSchema} from "@odls/contracts";
+import {ConstructionNormItemQuerySchema,ConstructionNormQuerySchema,CreateConstructionNormItemRequestSchema,CreateConstructionNormRequestSchema,NormCatalogIdParamsSchema,NormCatalogStatusRequestSchema,NormCatalogVersionRequestSchema,UpdateConstructionNormItemRequestSchema,UpdateConstructionNormRequestSchema} from "@odls/contracts";
+import {NormCatalogService,type NormCatalogActor} from "./application/norm-catalog/norm-catalog-service.js";
 
 dotenv.config({ path: join(import.meta.dirname, "../../../../.env") });
 
@@ -50,6 +52,7 @@ export function buildServer(): FastifyInstance<any, any, any, any> {
   const workCatalogService=pool?new WorkCatalogService(pool):undefined;
   const materialCatalogService=pool?new MaterialCatalogService(pool):undefined;
   const priceListService=pool?new PriceListService(pool):undefined;
+  const normCatalogService=pool?new NormCatalogService(pool):undefined;
   const jwtSecret = process.env.JWT_SECRET ?? "development-only-secret-change-me-32chars";
   void app.register(helmet); void app.register(jwt, { secret:jwtSecret }); void app.register(multipart,{limits:{fileSize:Number(process.env.DOCUMENT_MAX_BYTES??10_485_760),files:1,fields:8}});
   app.decorateRequest("claims", null);
@@ -65,6 +68,8 @@ export function buildServer(): FastifyInstance<any, any, any, any> {
   function materialCatalogActor(request:any):MaterialCatalogActor{return {id:request.claims.sub,tenantId:request.claims.tenantId,permissions:request.claims.permissions,correlationId:String(request.headers["x-correlation-id"]??request.id)};}
   function priceLists(){if(!priceListService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return priceListService;}
   function priceListActor(request:any):PriceListActor{return {id:request.claims.sub,tenantId:request.claims.tenantId,permissions:request.claims.permissions,correlationId:String(request.headers["x-correlation-id"]??request.id)};}
+  function normCatalog(){if(!normCatalogService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return normCatalogService;}
+  function normCatalogActor(request:any):NormCatalogActor{return {id:request.claims.sub,tenantId:request.claims.tenantId,permissions:request.claims.permissions,correlationId:String(request.headers["x-correlation-id"]??request.id)};}
   function clientActor(request:any):ClientActor{return {id:request.claims.sub,tenantId:request.claims.tenantId,permissions:request.claims.permissions,correlationId:String(request.headers["x-correlation-id"]??request.id)};}
   function properties(){if(!propertyService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return propertyService;}
   function propertyActor(request:any):PropertyActor{return {id:request.claims.sub,tenantId:request.claims.tenantId,permissions:request.claims.permissions,correlationId:String(request.headers["x-correlation-id"]??request.id)};}
@@ -131,6 +136,16 @@ export function buildServer(): FastifyInstance<any, any, any, any> {
   app.post("/api/v1/price-list-items",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await priceLists().createItem(priceListActor(request),CreatePriceListItemRequestSchema.parse(request.body))}),201));
   app.patch("/api/v1/price-list-items/:id",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await priceLists().updateItem(priceListActor(request),PriceListIdParamsSchema.parse(request.params).id,UpdatePriceListItemRequestSchema.parse(request.body))})));
   app.patch("/api/v1/price-list-items/:id/status",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const x=PriceListStatusRequestSchema.parse(request.body);return {data:await priceLists().itemStatus(priceListActor(request),PriceListIdParamsSchema.parse(request.params).id,x.status,x.expectedVersion)};}));
+  app.get("/api/v1/construction-norms",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const r=await normCatalog().norms(normCatalogActor(request),ConstructionNormQuerySchema.parse(request.query));return {data:r.items,pagination:r.pagination};}));
+  app.get("/api/v1/construction-norms/:id",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await normCatalog().getNorm(normCatalogActor(request),NormCatalogIdParamsSchema.parse(request.params).id)})));
+  app.post("/api/v1/construction-norms",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await normCatalog().createNorm(normCatalogActor(request),CreateConstructionNormRequestSchema.parse(request.body))}),201));
+  app.patch("/api/v1/construction-norms/:id",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await normCatalog().updateNorm(normCatalogActor(request),NormCatalogIdParamsSchema.parse(request.params).id,UpdateConstructionNormRequestSchema.parse(request.body))})));
+  app.patch("/api/v1/construction-norms/:id/status",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const x=NormCatalogStatusRequestSchema.parse(request.body);return {data:await normCatalog().status(normCatalogActor(request),NormCatalogIdParamsSchema.parse(request.params).id,x.status,x.expectedVersion)};}));
+  app.get("/api/v1/construction-norm-items",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const r=await normCatalog().items(normCatalogActor(request),ConstructionNormItemQuerySchema.parse(request.query));return {data:r.items,pagination:r.pagination};}));
+  app.get("/api/v1/construction-norm-items/:id",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await normCatalog().getItem(normCatalogActor(request),NormCatalogIdParamsSchema.parse(request.params).id)})));
+  app.post("/api/v1/construction-norm-items",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await normCatalog().createItem(normCatalogActor(request),CreateConstructionNormItemRequestSchema.parse(request.body))}),201));
+  app.patch("/api/v1/construction-norm-items/:id",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await normCatalog().updateItem(normCatalogActor(request),NormCatalogIdParamsSchema.parse(request.params).id,UpdateConstructionNormItemRequestSchema.parse(request.body))})));
+  app.delete("/api/v1/construction-norm-items/:id",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await normCatalog().deleteItem(normCatalogActor(request),NormCatalogIdParamsSchema.parse(request.params).id,NormCatalogVersionRequestSchema.parse(request.body).expectedVersion)})));
   app.get("/api/v1/users",{preHandler:[authenticate,authorize("users.read")]},async (request:any) => ({data:(await (await db()).query("SELECT id,email,display_name,is_disabled,version FROM users WHERE tenant_id=$1 AND deleted_at IS NULL ORDER BY display_name",[request.claims.tenantId])).rows}));
   app.get("/api/v1/users/:id",{preHandler:[authenticate,authorize("users.read")]},async (request:any,reply) => { const row=(await (await db()).query("SELECT id,email,display_name,is_disabled,version FROM users WHERE id=$1 AND tenant_id=$2 AND deleted_at IS NULL",[request.params.id,request.claims.tenantId])).rows[0]; return row?{data:row}:reply.code(404).send({code:"not_found"}); });
   app.get("/api/v1/clients",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const query=ClientListQuerySchema.parse(request.query);const result=await clients().listClients(clientActor(request),query);return {data:result.items,pagination:result.pagination};}));

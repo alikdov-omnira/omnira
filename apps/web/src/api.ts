@@ -1,7 +1,7 @@
 import type {
   ClientContract,CreateClientRequest,CreateProjectRequest,CreatePropertyRequest,CreateTaskRequest,DocumentContract,DocumentVersionSchema,
   ExpenseContract,InvoiceContract,PaymentContract,ProjectContract,ProjectFinancialSummary,PropertyContract,TaskContract,UpdateClientRequest,UpdateProjectRequest,
-  UpdatePropertyRequest,UpdateTaskRequest,NotificationContract,NotificationPreferencesContract,MeasurementUnitContract,WorkCategoryContract,WorkCategoryNodeContract,WorkItemContract,MaterialCategoryContract,MaterialCategoryNodeContract,MaterialContract,PriceListContract,PriceListItemContract
+  UpdatePropertyRequest,UpdateTaskRequest,NotificationContract,NotificationPreferencesContract,MeasurementUnitContract,WorkCategoryContract,WorkCategoryNodeContract,WorkItemContract,MaterialCategoryContract,MaterialCategoryNodeContract,MaterialContract,PriceListContract,PriceListItemContract,ConstructionNormContract,ConstructionNormItemContract
 } from "@odls/contracts";
 import {NotificationSchema,NotificationPreferencesSchema} from "@odls/contracts";
 
@@ -123,6 +123,14 @@ export const api={
   createPriceListItem:(body:unknown)=>raw<PriceListItemContract>("/price-list-items",json("POST",body)),
   updatePriceListItem:(id:string,body:unknown)=>raw<PriceListItemContract>(`/price-list-items/${id}`,json("PATCH",body)),
   priceListItemStatus:(id:string,status:"active"|"inactive",expectedVersion:number)=>raw<PriceListItemContract>(`/price-list-items/${id}/status`,json("PATCH",{status,expectedVersion})),
+  constructionNorms:(query:string)=>envelope<{data:ConstructionNormContract[];pagination:{page:number;pageSize:number;total:number;totalPages:number}}>(`/construction-norms?${query}`),
+  createConstructionNorm:(body:unknown)=>raw<ConstructionNormContract>("/construction-norms",json("POST",body)),
+  updateConstructionNorm:(id:string,body:unknown)=>raw<ConstructionNormContract>(`/construction-norms/${id}`,json("PATCH",body)),
+  constructionNormStatus:(id:string,status:"active"|"inactive",expectedVersion:number)=>raw<ConstructionNormContract>(`/construction-norms/${id}/status`,json("PATCH",{status,expectedVersion})),
+  constructionNormItems:(query:string)=>envelope<{data:ConstructionNormItemContract[];pagination:{page:number;pageSize:number;total:number;totalPages:number}}>(`/construction-norm-items?${query}`),
+  createConstructionNormItem:(body:unknown)=>raw<ConstructionNormItemContract>("/construction-norm-items",json("POST",body)),
+  updateConstructionNormItem:(id:string,body:unknown)=>raw<ConstructionNormItemContract>(`/construction-norm-items/${id}`,json("PATCH",body)),
+  deleteConstructionNormItem:(id:string,expectedVersion:number)=>raw<{id:string}>(`/construction-norm-items/${id}`,json("DELETE",{expectedVersion})),
   exportReport:async(name:ReportName,query="range=30")=>{const headers=new Headers();if(session)headers.set("authorization",`Bearer ${session.accessToken}`);const response=await fetch(`${base}/reports/${name}/export?${query}`,{headers});if(!response.ok){const body=await response.json().catch(()=>({}));throw new ApiError(response.status,body?.error?.code??"REQUEST_FAILED");}return {blob:await response.blob(),disposition:response.headers.get("content-disposition")};},
   logout:()=>session?raw<{revoked:boolean}>("/auth/logout",json("POST",{refreshToken:session.refreshToken})):Promise.resolve()
 };
