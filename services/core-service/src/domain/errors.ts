@@ -5,7 +5,9 @@ export type DomainErrorCode =
   | "PERSPECTIVE_TRANSFORM_UNSUPPORTED" | "IMAGE_PROCESSING_FAILED"
   | "OCR_INPUT_NOT_AVAILABLE" | "OCR_UNSUPPORTED_MIME" | "OCR_LANGUAGE_NOT_SUPPORTED"
   | "OCR_PROVIDER_UNAVAILABLE" | "OCR_PROCESSING_FAILED" | "OCR_TIMEOUT" | "OCR_OUTPUT_INVALID"
-  | "OCR_JOB_ALREADY_ACTIVE" | "OCR_JOB_NOT_FOUND" | "OCR_RESULT_NOT_FOUND" | "OCR_JOB_VERSION_CONFLICT";
+  | "OCR_JOB_ALREADY_ACTIVE" | "OCR_JOB_NOT_FOUND" | "OCR_RESULT_NOT_FOUND" | "OCR_JOB_VERSION_CONFLICT"
+  | "ANALYSIS_INPUT_NOT_AVAILABLE" | "ANALYSIS_PROCESSING_FAILED" | "ANALYSIS_TIMEOUT" | "ANALYSIS_OUTPUT_INVALID"
+  | "ANALYSIS_JOB_ALREADY_ACTIVE" | "ANALYSIS_JOB_NOT_FOUND" | "ANALYSIS_RESULT_NOT_FOUND" | "ANALYSIS_JOB_VERSION_CONFLICT";
 
 export class DomainError extends Error {
   constructor(public readonly code: DomainErrorCode, public readonly statusCode: number, message: string, public readonly details: Record<string, unknown> = {}) { super(message); }
@@ -22,5 +24,6 @@ export const domainErrors = {
   transition: () => new DomainError("INVALID_STATUS_TRANSITION", 422, "Invalid status transition"),
   perspectiveUnsupported: () => new DomainError("PERSPECTIVE_TRANSFORM_UNSUPPORTED", 422, "Perspective transformation is not supported by the configured image processor"),
   imageProcessing: (message = "Image processing failed") => new DomainError("IMAGE_PROCESSING_FAILED", 422, message),
-  ocr: (code:Extract<DomainErrorCode,`OCR_${string}`>,statusCode:number,message:string) => new DomainError(code,statusCode,message)
+  ocr: (code:Extract<DomainErrorCode,`OCR_${string}`>,statusCode:number,message:string) => new DomainError(code,statusCode,message),
+  analysis: (code:Extract<DomainErrorCode,`ANALYSIS_${string}`>,statusCode:number,message:string) => new DomainError(code,statusCode,message)
 };

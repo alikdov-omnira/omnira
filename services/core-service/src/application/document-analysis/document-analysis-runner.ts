@@ -1,0 +1,2 @@
+import type{Pool}from"pg";import type{DocumentAnalysisService}from"./document-analysis-service.js";
+export class DocumentAnalysisRunner{constructor(private pool:Pool,private service:DocumentAnalysisService,private batch=1){}async runOnce(){let processed=0;for(const t of(await this.pool.query<{id:string}>("SELECT id FROM tenants ORDER BY id")).rows)for(let i=0;i<this.batch;i++){if(!await this.service.processNext(t.id))break;processed++;}return{processed};}}

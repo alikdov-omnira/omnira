@@ -36,6 +36,10 @@ import {LaborRateCatalogRepository} from "./infrastructure/labor-rate-catalog/la
 import {ListOcrJobsQuerySchema,OcrJobParamsSchema,OcrJobVersionRequestSchema,RequestPageOcrRequestSchema} from "@odls/contracts";
 import {OcrService} from "./application/ocr/ocr-service.js";
 import {TesseractOcrProvider} from "./infrastructure/ocr/tesseract-ocr-provider.js";
+import {AnalysisJobListQuerySchema,AnalysisJobParamsSchema,AnalysisJobVersionRequestSchema,RequestDocumentAnalysisRequestSchema} from "@odls/contracts";
+import {DocumentAnalysisService} from "./application/document-analysis/document-analysis-service.js";
+import {DeterministicDocumentClassifier} from "./infrastructure/document-analysis/deterministic-classifier.js";
+import {DocumentAnalysisRepository} from "./infrastructure/document-analysis/document-analysis-repository.js";
 
 dotenv.config({ path: join(import.meta.dirname, "../../../../.env") });
 
@@ -67,6 +71,7 @@ export function buildServer(): FastifyInstance<any, any, any, any> {
   const laborRateService=pool?new LaborRateCatalogService(new LaborRateCatalogRepository(pool)):undefined;
   const ocrProvider=pool?new TesseractOcrProvider():undefined;
   const ocrService=pool&&ocrProvider?new OcrService(pool,ocrProvider):undefined;
+  const analysisService=pool?new DocumentAnalysisService(new DocumentAnalysisRepository(pool),new DeterministicDocumentClassifier()):undefined;
   const jwtSecret = process.env.JWT_SECRET ?? "development-only-secret-change-me-32chars";
   void app.register(helmet); void app.register(jwt, { secret:jwtSecret }); void app.register(multipart,{limits:{fileSize:scannerEnvironmentInteger("SCANNER_MAX_UPLOAD_BYTES",25*1024*1024,1,1024*1024*1024),files:1,fields:12}});
   app.decorateRequest("claims", null);
@@ -100,6 +105,7 @@ export function buildServer(): FastifyInstance<any, any, any, any> {
   function documents(){if(!documentService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return documentService;}
   function documentPages(){if(!documentPageService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return documentPageService;}
   function ocr(){if(!ocrService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return ocrService;}
+  function analysis(){if(!analysisService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return analysisService;}
   function notifications(){if(!notificationService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return notificationService;}
   function notificationActor(request:any):NotificationActor{return {id:request.claims.sub,tenantId:request.claims.tenantId,permissions:request.claims.permissions,correlationId:String(request.headers["x-correlation-id"]??request.id)};}
   function analytics(){if(!analyticsService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return analyticsService;}
@@ -265,6 +271,14 @@ export function buildServer(): FastifyInstance<any, any, any, any> {
   app.get("/api/v1/ocr/jobs",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const x=await ocr().list(financeActor(request),ListOcrJobsQuerySchema.parse(request.query));return {data:x.items,pagination:x.pagination};}));
   app.post("/api/v1/ocr/jobs/:jobId/retry",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await ocr().retry(financeActor(request),OcrJobParamsSchema.parse(request.params).jobId,OcrJobVersionRequestSchema.parse(request.body).expectedVersion)})));
   app.post("/api/v1/ocr/jobs/:jobId/cancel",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await ocr().cancel(financeActor(request),OcrJobParamsSchema.parse(request.params).jobId,OcrJobVersionRequestSchema.parse(request.body).expectedVersion)})));
+  app.post("/api/v1/documents/:id/analysis",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{RequestDocumentAnalysisRequestSchema.parse(request.body??{});return{data:await analysis().request(financeActor(request),DocumentIdParamsSchema.parse(request.params).id)};},201));
+  app.get("/api/v1/documents/:id/analysis",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await analysis().analysis(financeActor(request),DocumentIdParamsSchema.parse(request.params).id)})));
+  app.get("/api/v1/documents/:id/analysis/classification",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await analysis().classification(financeActor(request),DocumentIdParamsSchema.parse(request.params).id)})));
+  app.get("/api/v1/documents/:id/analysis/extraction",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await analysis().extraction(financeActor(request),DocumentIdParamsSchema.parse(request.params).id)})));
+  app.get("/api/v1/document-analysis-jobs",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const x=await analysis().list(financeActor(request),AnalysisJobListQuerySchema.parse(request.query));return{data:x.items,pagination:x.pagination};}));
+  app.get("/api/v1/document-analysis-jobs/:jobId",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await analysis().getJob(financeActor(request),AnalysisJobParamsSchema.parse(request.params).jobId)})));
+  app.post("/api/v1/document-analysis-jobs/:jobId/retry",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await analysis().retry(financeActor(request),AnalysisJobParamsSchema.parse(request.params).jobId,AnalysisJobVersionRequestSchema.parse(request.body).expectedVersion)})));
+  app.post("/api/v1/document-analysis-jobs/:jobId/cancel",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await analysis().cancel(financeActor(request),AnalysisJobParamsSchema.parse(request.params).jobId,AnalysisJobVersionRequestSchema.parse(request.body).expectedVersion)})));
   app.get("/api/v1/notifications",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const result=await notifications().list(notificationActor(request),NotificationListQuerySchema.parse(request.query));return {data:result.items,pagination:result.pagination};}));
   app.get("/api/v1/notifications/unread-count",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:{count:await notifications().unreadCount(notificationActor(request))}})));
   app.get("/api/v1/notifications/:id",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await notifications().get(notificationActor(request),NotificationIdParamsSchema.parse(request.params).id)})));

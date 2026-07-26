@@ -24,7 +24,14 @@ const copy:Record<NotificationEventType,{title:string;body:string;severity:Notif
  "document.page_ocr_completed":{title:"OCR completed",body:"Text recognition completed for a document page.",severity:"success"},
  "document.page_ocr_failed":{title:"OCR failed",body:"Text recognition failed for a document page.",severity:"warning"},
  "document.page_ocr_retried":{title:"OCR retried",body:"Text recognition was queued for retry.",severity:"info"},
- "document.page_ocr_cancelled":{title:"OCR cancelled",body:"Text recognition was cancelled.",severity:"warning"}
+ "document.page_ocr_cancelled":{title:"OCR cancelled",body:"Text recognition was cancelled.",severity:"warning"},
+ "document.analysis_requested":{title:"Analysis requested",body:"Document analysis was requested.",severity:"info"},
+ "document.analysis_started":{title:"Analysis started",body:"Document analysis started.",severity:"info"},
+ "document.classified":{title:"Document classified",body:"Document classification completed.",severity:"success"},
+ "document.extraction_completed":{title:"Extraction completed",body:"Structured extraction completed.",severity:"success"},
+ "document.analysis_failed":{title:"Analysis failed",body:"Document analysis failed.",severity:"warning"},
+ "document.analysis_retried":{title:"Analysis retried",body:"Document analysis was queued for retry.",severity:"info"},
+ "document.analysis_cancelled":{title:"Analysis cancelled",body:"Document analysis was cancelled.",severity:"warning"}
 };
 export const notificationCopy=(eventType:NotificationEventType)=>copy[eventType];
 export const deduplicationKey=(eventType:NotificationEventType,entityId:string,recipientId:string,windowKey="event")=>createHash("sha256").update(`${eventType}:${entityId}:${recipientId}:${windowKey}`).digest("hex");
