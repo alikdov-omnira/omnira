@@ -1,0 +1,12 @@
+export type CatalogStatus="active"|"inactive";
+export type WorkCategory={id:string;tenantId:string;code:string;displayName:string;description:string|null;parentId:string|null;hierarchyLevel:number;sortOrder:number;status:CatalogStatus;isSystem:boolean;createdAt:string;updatedAt:string;version:number};
+export type WorkCategoryNode=WorkCategory&{children:WorkCategoryNode[]};
+export type WorkItem={id:string;tenantId:string;code:string;displayName:string;shortDescription:string|null;detailedDescription:string|null;categoryId:string;categoryName:string;measurementUnitId:string;measurementUnitCode:string;measurementDimension:string;status:CatalogStatus;isSystem:boolean;quantityPrecision:number;internalNotes:string|null;createdAt:string;updatedAt:string;version:number};
+export type CreateCategory={code:string;displayName:string;description?:string;parentId?:string|null;sortOrder:number};
+export type UpdateCategory={expectedVersion:number;displayName?:string;description?:string|null;sortOrder?:number};
+export type MoveCategory={expectedVersion:number;parentId:string|null;sortOrder?:number};
+export type CategoryListQuery={page:number;pageSize:number;search?:string;active?:boolean;parentId?:string;rootOnly?:boolean;isSystem?:boolean;sortBy:"code"|"displayName"|"sortOrder"|"status"|"createdAt"|"updatedAt";sortOrder:"asc"|"desc"};
+export type CreateWorkItem={code:string;displayName:string;shortDescription?:string;detailedDescription?:string;categoryId:string;measurementUnitId:string;quantityPrecision:number;internalNotes?:string};
+export type UpdateWorkItem={expectedVersion:number;displayName?:string;shortDescription?:string|null;detailedDescription?:string|null;categoryId?:string;measurementUnitId?:string;quantityPrecision?:number;internalNotes?:string|null};
+export type WorkItemListQuery={page:number;pageSize:number;search?:string;categoryId?:string;measurementUnitId?:string;dimension?:string;active?:boolean;isSystem?:boolean;sortBy:"code"|"displayName"|"category"|"measurementUnit"|"status"|"createdAt"|"updatedAt";sortOrder:"asc"|"desc"};
+export type PageResult<T>={items:T[];pagination:{page:number;pageSize:number;total:number;totalPages:number}};

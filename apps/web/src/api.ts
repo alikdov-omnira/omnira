@@ -1,7 +1,7 @@
 import type {
   ClientContract,CreateClientRequest,CreateProjectRequest,CreatePropertyRequest,CreateTaskRequest,DocumentContract,DocumentVersionSchema,
   ExpenseContract,InvoiceContract,PaymentContract,ProjectContract,ProjectFinancialSummary,PropertyContract,TaskContract,UpdateClientRequest,UpdateProjectRequest,
-  UpdatePropertyRequest,UpdateTaskRequest,NotificationContract,NotificationPreferencesContract,MeasurementUnitContract
+  UpdatePropertyRequest,UpdateTaskRequest,NotificationContract,NotificationPreferencesContract,MeasurementUnitContract,WorkCategoryContract,WorkCategoryNodeContract,WorkItemContract
 } from "@odls/contracts";
 import {NotificationSchema,NotificationPreferencesSchema} from "@odls/contracts";
 
@@ -95,6 +95,16 @@ export const api={
   updateMeasurementUnit:(id:string,body:unknown)=>raw<MeasurementUnitContract>(`/measurement-units/${id}`,json("PATCH",body)),
   measurementUnitStatus:(id:string,action:"activate"|"deactivate",expectedVersion:number)=>raw<MeasurementUnitContract>(`/measurement-units/${id}/${action}`,json("POST",{expectedVersion})),
   convertMeasurementUnit:(body:unknown)=>raw<{quantity:string;fromUnitId:string;toUnitId:string;result:string;precision:number}>("/measurement-units/convert",json("POST",body)),
+  workCategories:(query:string)=>envelope<{data:WorkCategoryContract[];pagination:{page:number;pageSize:number;total:number;totalPages:number}}>(`/work-categories?${query}`),
+  workCategoryTree:()=>raw<WorkCategoryNodeContract[]>("/work-categories/tree"),
+  createWorkCategory:(body:unknown)=>raw<WorkCategoryContract>("/work-categories",json("POST",body)),
+  updateWorkCategory:(id:string,body:unknown)=>raw<WorkCategoryContract>(`/work-categories/${id}`,json("PATCH",body)),
+  moveWorkCategory:(id:string,body:unknown)=>raw<WorkCategoryContract>(`/work-categories/${id}/move`,json("POST",body)),
+  workCategoryStatus:(id:string,action:"activate"|"deactivate",expectedVersion:number)=>raw<WorkCategoryContract>(`/work-categories/${id}/${action}`,json("POST",{expectedVersion})),
+  workItems:(query:string)=>envelope<{data:WorkItemContract[];pagination:{page:number;pageSize:number;total:number;totalPages:number}}>(`/work-items?${query}`),
+  createWorkItem:(body:unknown)=>raw<WorkItemContract>("/work-items",json("POST",body)),
+  updateWorkItem:(id:string,body:unknown)=>raw<WorkItemContract>(`/work-items/${id}`,json("PATCH",body)),
+  workItemStatus:(id:string,action:"activate"|"deactivate",expectedVersion:number)=>raw<WorkItemContract>(`/work-items/${id}/${action}`,json("POST",{expectedVersion})),
   exportReport:async(name:ReportName,query="range=30")=>{const headers=new Headers();if(session)headers.set("authorization",`Bearer ${session.accessToken}`);const response=await fetch(`${base}/reports/${name}/export?${query}`,{headers});if(!response.ok){const body=await response.json().catch(()=>({}));throw new ApiError(response.status,body?.error?.code??"REQUEST_FAILED");}return {blob:await response.blob(),disposition:response.headers.get("content-disposition")};},
   logout:()=>session?raw<{revoked:boolean}>("/auth/logout",json("POST",{refreshToken:session.refreshToken})):Promise.resolve()
 };
