@@ -1,7 +1,7 @@
 import type {
   ClientContract,CreateClientRequest,CreateProjectRequest,CreatePropertyRequest,CreateTaskRequest,DocumentContract,DocumentVersionSchema,
   ExpenseContract,InvoiceContract,PaymentContract,ProjectContract,ProjectFinancialSummary,PropertyContract,TaskContract,UpdateClientRequest,UpdateProjectRequest,
-  UpdatePropertyRequest,UpdateTaskRequest,NotificationContract,NotificationPreferencesContract,MeasurementUnitContract,WorkCategoryContract,WorkCategoryNodeContract,WorkItemContract,MaterialCategoryContract,MaterialCategoryNodeContract,MaterialContract,PriceListContract,PriceListItemContract,ConstructionNormContract,ConstructionNormItemContract
+  UpdatePropertyRequest,UpdateTaskRequest,NotificationContract,NotificationPreferencesContract,MeasurementUnitContract,WorkCategoryContract,WorkCategoryNodeContract,WorkItemContract,MaterialCategoryContract,MaterialCategoryNodeContract,MaterialContract,PriceListContract,PriceListItemContract,ConstructionNormContract,ConstructionNormItemContract,EstimateContract,EstimateItemContract,EstimateMaterialContract
 } from "@odls/contracts";
 import {NotificationSchema,NotificationPreferencesSchema} from "@odls/contracts";
 
@@ -131,6 +131,18 @@ export const api={
   createConstructionNormItem:(body:unknown)=>raw<ConstructionNormItemContract>("/construction-norm-items",json("POST",body)),
   updateConstructionNormItem:(id:string,body:unknown)=>raw<ConstructionNormItemContract>(`/construction-norm-items/${id}`,json("PATCH",body)),
   deleteConstructionNormItem:(id:string,expectedVersion:number)=>raw<{id:string}>(`/construction-norm-items/${id}`,json("DELETE",{expectedVersion})),
+  estimates:(query:string)=>envelope<{data:EstimateContract[];pagination:{page:number;pageSize:number;total:number;totalPages:number}}>(`/estimates?${query}`),
+  createEstimate:(body:unknown)=>raw<EstimateContract>("/estimates",json("POST",body)),
+  updateEstimate:(id:string,body:unknown)=>raw<EstimateContract>(`/estimates/${id}`,json("PATCH",body)),
+  estimateStatus:(id:string,status:"draft"|"approved"|"archived",expectedVersion:number)=>raw<EstimateContract>(`/estimates/${id}/status`,json("PATCH",{status,expectedVersion})),
+  recalculateEstimate:(id:string)=>raw<EstimateContract>(`/estimates/${id}/recalculate`,json("POST",{})),
+  estimateItems:(query:string)=>envelope<{data:EstimateItemContract[];pagination:{page:number;pageSize:number;total:number;totalPages:number}}>(`/estimate-items?${query}`),
+  createEstimateItem:(body:unknown)=>raw<EstimateItemContract>("/estimate-items",json("POST",body)),
+  updateEstimateItem:(id:string,body:unknown)=>raw<EstimateItemContract>(`/estimate-items/${id}`,json("PATCH",body)),
+  deleteEstimateItem:(id:string,expectedVersion:number)=>raw<{id:string}>(`/estimate-items/${id}`,json("DELETE",{expectedVersion})),
+  estimateMaterials:(query:string)=>envelope<{data:EstimateMaterialContract[];pagination:{page:number;pageSize:number;total:number;totalPages:number}}>(`/estimate-materials?${query}`),
+  updateEstimateMaterial:(id:string,body:unknown)=>raw<EstimateMaterialContract>(`/estimate-materials/${id}`,json("PATCH",body)),
+  deleteEstimateMaterial:(id:string,expectedVersion:number)=>raw<{id:string}>(`/estimate-materials/${id}`,json("DELETE",{expectedVersion})),
   exportReport:async(name:ReportName,query="range=30")=>{const headers=new Headers();if(session)headers.set("authorization",`Bearer ${session.accessToken}`);const response=await fetch(`${base}/reports/${name}/export?${query}`,{headers});if(!response.ok){const body=await response.json().catch(()=>({}));throw new ApiError(response.status,body?.error?.code??"REQUEST_FAILED");}return {blob:await response.blob(),disposition:response.headers.get("content-disposition")};},
   logout:()=>session?raw<{revoked:boolean}>("/auth/logout",json("POST",{refreshToken:session.refreshToken})):Promise.resolve()
 };

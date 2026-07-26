@@ -1,0 +1,10 @@
+import {domainErrors} from "../errors.js";
+const codePattern=/^[A-Z][A-Z0-9_]{0,59}$/;
+const text=(v:string,n:string,max:number)=>{const x=v.trim();if(!x)throw domainErrors.validation(`${n} is required`);if(x.length>max)throw domainErrors.validation(`${n} must not exceed ${max} characters`);return x;};
+const optional=(v:string|null|undefined,n:string,max:number)=>{if(v==null)return v;const x=v.trim();if(!x)return null;if(x.length>max)throw domainErrors.validation(`${n} must not exceed ${max} characters`);return x;};
+const decimal=(v:string,n:string,scale:number,positive=false)=>{if(!/^\d+(\.\d{1,6})?$/.test(v)||(positive?Number(v)<=0:Number(v)<0))throw domainErrors.validation(`${n} must be ${positive?"greater than zero":"non-negative"}`);return Number(v).toFixed(scale);};
+export const validateEstimateCreate=(x:any)=>{const code=x.code.trim().toUpperCase(),currency=x.currency.trim().toUpperCase();if(!codePattern.test(code))throw domainErrors.validation("Code must be a stable uppercase identifier");if(!/^[A-Z]{3}$/.test(currency))throw domainErrors.validation("currency must be a 3-letter code");return {...x,code,currency,displayName:text(x.displayName,"Display name",300),notes:optional(x.notes,"Notes",10000)??undefined};};
+export const validateEstimateUpdate=(x:any)=>({...x,displayName:x.displayName===undefined?undefined:text(x.displayName,"Display name",300),notes:x.notes===undefined?undefined:optional(x.notes,"Notes",10000)});
+export const validateEstimateItemCreate=(x:any)=>({...x,quantity:decimal(x.quantity,"quantity",6,true),laborCost:decimal(x.laborCost,"laborCost",4)});
+export const validateEstimateItemUpdate=(x:any)=>({...x,quantity:x.quantity===undefined?undefined:decimal(x.quantity,"quantity",6,true),laborCost:x.laborCost===undefined?undefined:decimal(x.laborCost,"laborCost",4)});
+export const validateEstimateMaterialUpdate=(x:any)=>({...x,quantity:x.quantity===undefined?undefined:decimal(x.quantity,"quantity",6,true),unitPrice:x.unitPrice===undefined?undefined:decimal(x.unitPrice,"unitPrice",4)});

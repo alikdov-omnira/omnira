@@ -1,0 +1,12 @@
+export type EstimateStatus="draft"|"approved"|"archived";
+export type Estimate={id:string;tenantId:string;projectId:string;projectName:string;code:string;displayName:string;currency:string;status:EstimateStatus;totalLabor:string;totalMaterials:string;totalCost:string;notes:string|null;version:number;createdAt:string;updatedAt:string;createdBy:string;updatedBy:string};
+export type EstimateItem={id:string;tenantId:string;estimateId:string;workId:string;workCode:string;workName:string;quantity:string;measurementUnitId:string;measurementUnitCode:string;normId:string;normCode:string;laborCost:string;materialCost:string;totalCost:string;version:number;createdAt:string;updatedAt:string;createdBy:string;updatedBy:string};
+export type EstimateMaterial={id:string;tenantId:string;estimateItemId:string;materialId:string;materialCode:string;materialName:string;quantity:string;unitPrice:string;totalPrice:string;priceListId:string;priceListCode:string;version:number;createdAt:string;updatedAt:string;createdBy:string;updatedBy:string};
+export type CreateEstimate={projectId:string;code:string;displayName:string;currency:string;notes?:string};
+export type UpdateEstimate={expectedVersion:number;displayName?:string;notes?:string|null};
+export type CreateEstimateItem={estimateId:string;workId:string;quantity:string;measurementUnitId:string;priceListId:string;laborCost:string};
+export type UpdateEstimateItem={expectedVersion:number;quantity?:string;priceListId:string;laborCost?:string};
+export type UpdateEstimateMaterial={expectedVersion:number;quantity?:string;unitPrice?:string};
+export type EstimateQuery={page:number;pageSize:number;search?:string;projectId?:string;status?:EstimateStatus;sortBy:"code"|"displayName"|"status"|"totalCost"|"createdAt"|"updatedAt";sortOrder:"asc"|"desc"};
+export type EstimateChildQuery={page:number;pageSize:number;estimateId?:string;estimateItemId?:string;search?:string;sortOrder:"asc"|"desc"};
+export type EstimatePage<T>={items:T[];pagination:{page:number;pageSize:number;total:number;totalPages:number}};

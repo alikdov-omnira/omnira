@@ -270,3 +270,22 @@ export const NormCatalogStatusRequestSchema=z.object({expectedVersion:z.number()
 export const NormCatalogVersionRequestSchema=z.object({expectedVersion:z.number().int().positive()}).strict();
 export type ConstructionNormContract=z.infer<typeof ConstructionNormSchema>;
 export type ConstructionNormItemContract=z.infer<typeof ConstructionNormItemSchema>;
+
+const EstimateDecimalSchema=z.string().regex(/^\d+(\.\d{1,6})?$/);
+const EstimateAuditSchema={createdBy:z.string().uuid(),updatedBy:z.string().uuid(),createdAt:z.union([z.string(),z.date()]),updatedAt:z.union([z.string(),z.date()]),version:z.number().int().positive()};
+export const EstimateStatusSchema=z.enum(["draft","approved","archived"]);
+export const EstimateSchema=z.object({id:z.string().uuid(),tenantId:z.string().uuid(),projectId:z.string().uuid(),projectName:z.string(),code:z.string(),displayName:z.string(),currency:z.string(),status:EstimateStatusSchema,totalLabor:z.string(),totalMaterials:z.string(),totalCost:z.string(),notes:z.string().nullable(),...EstimateAuditSchema});
+export const EstimateItemSchema=z.object({id:z.string().uuid(),tenantId:z.string().uuid(),estimateId:z.string().uuid(),workId:z.string().uuid(),workCode:z.string(),workName:z.string(),quantity:z.string(),measurementUnitId:z.string().uuid(),measurementUnitCode:z.string(),normId:z.string().uuid(),normCode:z.string(),laborCost:z.string(),materialCost:z.string(),totalCost:z.string(),...EstimateAuditSchema});
+export const EstimateMaterialSchema=z.object({id:z.string().uuid(),tenantId:z.string().uuid(),estimateItemId:z.string().uuid(),materialId:z.string().uuid(),materialCode:z.string(),materialName:z.string(),quantity:z.string(),unitPrice:z.string(),totalPrice:z.string(),priceListId:z.string().uuid(),priceListCode:z.string(),...EstimateAuditSchema});
+export const CreateEstimateRequestSchema=z.object({projectId:z.string().uuid(),code:CatalogCodeSchema,displayName:z.string().trim().min(1).max(300),currency:z.string().trim().regex(/^[A-Za-z]{3}$/).transform(v=>v.toUpperCase()),notes:z.string().trim().max(10000).optional()}).strict();
+export const UpdateEstimateRequestSchema=z.object({expectedVersion:z.number().int().positive(),displayName:z.string().trim().min(1).max(300).optional(),notes:z.string().trim().max(10000).nullable().optional()}).strict();
+export const CreateEstimateItemRequestSchema=z.object({estimateId:z.string().uuid(),workId:z.string().uuid(),quantity:EstimateDecimalSchema,measurementUnitId:z.string().uuid(),priceListId:z.string().uuid(),laborCost:EstimateDecimalSchema}).strict();
+export const UpdateEstimateItemRequestSchema=z.object({expectedVersion:z.number().int().positive(),quantity:EstimateDecimalSchema.optional(),priceListId:z.string().uuid(),laborCost:EstimateDecimalSchema.optional()}).strict();
+export const UpdateEstimateMaterialRequestSchema=z.object({expectedVersion:z.number().int().positive(),quantity:EstimateDecimalSchema.optional(),unitPrice:EstimateDecimalSchema.optional()}).strict();
+export const EstimateQuerySchema=z.object({page:z.coerce.number().int().positive().default(1),pageSize:z.coerce.number().int().min(1).max(100).default(25),search:z.string().trim().max(300).optional(),projectId:z.string().uuid().optional(),status:EstimateStatusSchema.optional(),sortBy:z.enum(["code","displayName","status","totalCost","createdAt","updatedAt"]).default("code"),sortOrder:z.enum(["asc","desc"]).default("asc")}).strict();
+export const EstimateChildQuerySchema=z.object({page:z.coerce.number().int().positive().default(1),pageSize:z.coerce.number().int().min(1).max(100).default(25),estimateId:z.string().uuid().optional(),estimateItemId:z.string().uuid().optional(),search:z.string().trim().max(300).optional(),sortOrder:z.enum(["asc","desc"]).default("asc")}).strict();
+export const EstimateIdParamsSchema=z.object({id:z.string().uuid()});
+export const EstimateStatusRequestSchema=z.object({expectedVersion:z.number().int().positive(),status:EstimateStatusSchema}).strict();
+export type EstimateContract=z.infer<typeof EstimateSchema>;
+export type EstimateItemContract=z.infer<typeof EstimateItemSchema>;
+export type EstimateMaterialContract=z.infer<typeof EstimateMaterialSchema>;
