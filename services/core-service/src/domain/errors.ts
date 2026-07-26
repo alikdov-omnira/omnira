@@ -7,7 +7,10 @@ export type DomainErrorCode =
   | "OCR_PROVIDER_UNAVAILABLE" | "OCR_PROCESSING_FAILED" | "OCR_TIMEOUT" | "OCR_OUTPUT_INVALID"
   | "OCR_JOB_ALREADY_ACTIVE" | "OCR_JOB_NOT_FOUND" | "OCR_RESULT_NOT_FOUND" | "OCR_JOB_VERSION_CONFLICT"
   | "ANALYSIS_INPUT_NOT_AVAILABLE" | "ANALYSIS_PROCESSING_FAILED" | "ANALYSIS_TIMEOUT" | "ANALYSIS_OUTPUT_INVALID"
-  | "ANALYSIS_JOB_ALREADY_ACTIVE" | "ANALYSIS_JOB_NOT_FOUND" | "ANALYSIS_RESULT_NOT_FOUND" | "ANALYSIS_JOB_VERSION_CONFLICT";
+  | "ANALYSIS_JOB_ALREADY_ACTIVE" | "ANALYSIS_JOB_NOT_FOUND" | "ANALYSIS_RESULT_NOT_FOUND" | "ANALYSIS_JOB_VERSION_CONFLICT"
+  | "REVIEW_NOT_FOUND" | "REVIEW_INPUT_NOT_AVAILABLE" | "REVIEW_ALREADY_ACTIVE" | "REVIEW_ALREADY_APPROVED" | "REVIEW_VERSION_CONFLICT"
+  | "REVIEW_FIELD_INVALID" | "REVIEW_CLASSIFICATION_INVALID" | "REVIEW_VALIDATION_FAILED" | "REVIEW_LIMIT_EXCEEDED" | "REVIEW_REASON_INVALID"
+  | "APPROVED_DATA_NOT_FOUND" | "SUGGESTION_NOT_FOUND" | "SUGGESTION_VERSION_CONFLICT" | "SUGGESTION_TIMEOUT" | "SUGGESTION_OUTPUT_INVALID";
 
 export class DomainError extends Error {
   constructor(public readonly code: DomainErrorCode, public readonly statusCode: number, message: string, public readonly details: Record<string, unknown> = {}) { super(message); }
@@ -25,5 +28,6 @@ export const domainErrors = {
   perspectiveUnsupported: () => new DomainError("PERSPECTIVE_TRANSFORM_UNSUPPORTED", 422, "Perspective transformation is not supported by the configured image processor"),
   imageProcessing: (message = "Image processing failed") => new DomainError("IMAGE_PROCESSING_FAILED", 422, message),
   ocr: (code:Extract<DomainErrorCode,`OCR_${string}`>,statusCode:number,message:string) => new DomainError(code,statusCode,message),
-  analysis: (code:Extract<DomainErrorCode,`ANALYSIS_${string}`>,statusCode:number,message:string) => new DomainError(code,statusCode,message)
+  analysis: (code:Extract<DomainErrorCode,`ANALYSIS_${string}`>,statusCode:number,message:string) => new DomainError(code,statusCode,message),
+  review: (code:Extract<DomainErrorCode,`REVIEW_${string}`|`APPROVED_${string}`|`SUGGESTION_${string}`>,statusCode:number,message:string) => new DomainError(code,statusCode,message)
 };

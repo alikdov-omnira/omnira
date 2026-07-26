@@ -31,7 +31,19 @@ const copy:Record<NotificationEventType,{title:string;body:string;severity:Notif
  "document.extraction_completed":{title:"Extraction completed",body:"Structured extraction completed.",severity:"success"},
  "document.analysis_failed":{title:"Analysis failed",body:"Document analysis failed.",severity:"warning"},
  "document.analysis_retried":{title:"Analysis retried",body:"Document analysis was queued for retry.",severity:"info"},
- "document.analysis_cancelled":{title:"Analysis cancelled",body:"Document analysis was cancelled.",severity:"warning"}
+ "document.analysis_cancelled":{title:"Analysis cancelled",body:"Document analysis was cancelled.",severity:"warning"},
+ "document.review_started":{title:"Review started",body:"Manual document review started.",severity:"info"},
+ "document.review_assigned":{title:"Review assigned",body:"A document review was assigned.",severity:"info"},
+ "document.review_field_changed":{title:"Review updated",body:"A reviewed document field was changed.",severity:"info"},
+ "document.review_classification_changed":{title:"Classification updated",body:"The reviewed document classification was changed.",severity:"info"},
+ "document.review_submitted":{title:"Review submitted",body:"A document review is ready for a decision.",severity:"info"},
+ "document.review_changes_requested":{title:"Review changes requested",body:"Changes were requested for a document review.",severity:"warning"},
+ "document.review_approved":{title:"Review approved",body:"Reviewed document data was approved.",severity:"success"},
+ "document.review_rejected":{title:"Review rejected",body:"A document review was rejected.",severity:"warning"},
+ "document.suggestions_requested":{title:"Suggestions requested",body:"Document review suggestions were requested.",severity:"info"},
+ "document.suggestion_created":{title:"Suggestion created",body:"A document review suggestion was created.",severity:"info"},
+ "document.suggestion_accepted":{title:"Suggestion accepted",body:"A document review suggestion was accepted.",severity:"success"},
+ "document.suggestion_rejected":{title:"Suggestion rejected",body:"A document review suggestion was rejected.",severity:"warning"}
 };
 export const notificationCopy=(eventType:NotificationEventType)=>copy[eventType];
 export const deduplicationKey=(eventType:NotificationEventType,entityId:string,recipientId:string,windowKey="event")=>createHash("sha256").update(`${eventType}:${entityId}:${recipientId}:${windowKey}`).digest("hex");
