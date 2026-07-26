@@ -7,7 +7,7 @@ services:
   core-service:
     build: { context: ., dockerfile: Dockerfile.core }
     env_file: .env
-    environment: { CORE_SERVICE_PORT: "3001", DATABASE_URL: "postgresql://odls:odls@postgres:5432/odls", DOCUMENT_STORAGE_ROOT: "/var/lib/odls/documents", SCANNER_MAX_UPLOAD_BYTES: "26214400", OBJECT_STORAGE_ENDPOINT: "http://minio:9000", OBJECT_STORAGE_REGION: "us-east-1", OBJECT_STORAGE_BUCKET: "omnira-documents", OBJECT_STORAGE_ACCESS_KEY: "${MINIO_ROOT_USER:-omnira-local}", OBJECT_STORAGE_SECRET_KEY: "${MINIO_ROOT_PASSWORD:-replace-with-a-local-development-password}", OBJECT_STORAGE_FORCE_PATH_STYLE: "true" }
+    environment: { CORE_SERVICE_PORT: "3001", DATABASE_URL: "postgresql://odls:odls@postgres:5432/odls", DOCUMENT_STORAGE_ROOT: "/var/lib/odls/documents", SCANNER_MAX_UPLOAD_BYTES: "26214400", SCANNER_MAX_IMAGE_PIXELS: "40000000", SCANNER_MAX_IMAGE_DIMENSION: "12000", SCANNER_OUTPUT_JPEG_QUALITY: "88", OBJECT_STORAGE_ENDPOINT: "http://minio:9000", OBJECT_STORAGE_REGION: "us-east-1", OBJECT_STORAGE_BUCKET: "omnira-documents", OBJECT_STORAGE_ACCESS_KEY: "${MINIO_ROOT_USER:-omnira-local}", OBJECT_STORAGE_SECRET_KEY: "${MINIO_ROOT_PASSWORD:-replace-with-a-local-development-password}", OBJECT_STORAGE_FORCE_PATH_STYLE: "true" }
     ports: ["3001:3001"]
     depends_on: [postgres, minio-init]
     volumes: ["document_data:/var/lib/odls/documents"]
