@@ -1,0 +1,4 @@
+import type{PoolClient}from"pg";import type{DesignProjectActor}from"../../authorization/design-project-policy.js";
+export interface DesignProjectRepositoryPort{transaction<T>(tenantId:string,work:(db:PoolClient)=>Promise<T>):Promise<T>;audit(db:PoolClient,actor:DesignProjectActor,action:string,id:string,metadata?:Record<string,unknown>):Promise<void>;event(db:PoolClient,actor:DesignProjectActor,eventType:string,id:string,metadata?:Record<string,unknown>):Promise<void>;}
+export interface TechnicalAssignmentSnapshotPort{validate(input:{tenantId:string;projectId:string;snapshotId:string;fingerprint:string;schemaVersion:string}):Promise<{valid:boolean;issues:{code:string;blocking:boolean}[]}>}
+export interface ApprovedRoomScanSnapshotPort{validate(input:{tenantId:string;projectId:string;snapshotId:string;fingerprint:string;schemaVersion:string;elements?:{reference:string;elementType:string}[]}):Promise<{valid:boolean;issues:{code:string;blocking:boolean}[]}>}

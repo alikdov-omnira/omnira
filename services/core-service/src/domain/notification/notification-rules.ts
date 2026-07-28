@@ -62,7 +62,17 @@ const copy:Record<NotificationEventType,{title:string;body:string;severity:Notif
  "technical_assignment.readiness_requested":{title:"Technical assignment ready",body:"A technical assignment is ready for approval.",severity:"info"},
  "technical_assignment.approved":{title:"Technical assignment approved",body:"A technical assignment snapshot was approved.",severity:"success"},
  "technical_assignment.cancelled":{title:"Technical assignment cancelled",body:"A technical assignment was cancelled.",severity:"warning"},
- "technical_assignment.revision_created":{title:"Technical assignment revised",body:"A successor technical assignment revision was created.",severity:"info"}
+ "technical_assignment.revision_created":{title:"Technical assignment revised",body:"A successor technical assignment revision was created.",severity:"info"},
+ "design_project.created":{title:"Design project created",body:"A design project was created.",severity:"info"},
+ "design_project.lifecycle_changed":{title:"Design project updated",body:"The design lifecycle changed.",severity:"info"},
+ "design_project.decision_changed":{title:"Design decision updated",body:"A design decision changed.",severity:"info"},
+ "design_project.decision_reviewed":{title:"Design decision reviewed",body:"A design decision was reviewed.",severity:"info"},
+ "design_project.open_item_changed":{title:"Design open item updated",body:"A design open item changed.",severity:"info"},
+ "design_project.reference_added":{title:"Design reference added",body:"A design reference was added.",severity:"info"},
+ "design_project.readiness_requested":{title:"Design ready",body:"A design project is ready for approval.",severity:"info"},
+ "design_project.approved":{title:"Design approved",body:"A design project snapshot was approved.",severity:"success"},
+ "design_project.cancelled":{title:"Design cancelled",body:"A design project was cancelled.",severity:"warning"},
+ "design_project.revision_created":{title:"Design revised",body:"A successor design revision was created.",severity:"info"}
 };
 export const notificationCopy=(eventType:NotificationEventType)=>copy[eventType];
 export const deduplicationKey=(eventType:NotificationEventType,entityId:string,recipientId:string,windowKey="event")=>createHash("sha256").update(`${eventType}:${entityId}:${recipientId}:${windowKey}`).digest("hex");

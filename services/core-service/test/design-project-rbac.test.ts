@@ -1,0 +1,6 @@
+import{afterAll,describe,expect,it}from"vitest";import{Pool}from"pg";const run=process.env.DATABASE_URL?describe:describe.skip;
+run("design project RBAC",()=>{const pool=new Pool({connectionString:process.env.DATABASE_URL});afterAll(()=>pool.end());
+ it("creates seven separated permissions",async()=>expect((await pool.query("SELECT code FROM permissions WHERE code LIKE'design_projects.%'ORDER BY code")).rows.map(x=>x.code)).toEqual(["design_projects.approve","design_projects.cancel","design_projects.create","design_projects.edit","design_projects.read","design_projects.review","design_projects.snapshots.read"]));
+ it("keeps employee approval-free",async()=>{const p=(await pool.query("SELECT p.code FROM roles r JOIN role_permissions rp ON rp.role_id=r.id JOIN permissions p ON p.id=rp.permission_id WHERE r.code='employee'AND p.code LIKE'design_projects.%'")).rows.map(x=>x.code);expect(p).toContain("design_projects.edit");expect(p).not.toContain("design_projects.approve");});
+ it("keeps read-only non-mutating",async()=>expect((await pool.query("SELECT p.code FROM roles r JOIN role_permissions rp ON rp.role_id=r.id JOIN permissions p ON p.id=rp.permission_id WHERE r.code='read_only'AND p.code LIKE'design_projects.%'ORDER BY p.code")).rows.map(x=>x.code)).toEqual(["design_projects.read","design_projects.snapshots.read"]));
+});
