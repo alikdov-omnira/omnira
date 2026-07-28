@@ -49,7 +49,11 @@ const copy:Record<NotificationEventType,{title:string;body:string;severity:Notif
  "document.suggestion_request_completed":{title:"AI review completed",body:"Document suggestions are ready for review.",severity:"success"},
  "document.suggestion_request_failed":{title:"AI review failed",body:"Document suggestion processing failed safely.",severity:"warning"},
  "document.suggestion_request_cancelled":{title:"AI review cancelled",body:"Document suggestion processing was cancelled.",severity:"warning"},
- "document.suggestion_request_stale":{title:"AI review stale",body:"Document suggestions were discarded because the review changed.",severity:"warning"}
+ "document.suggestion_request_stale":{title:"AI review stale",body:"Document suggestions were discarded because the review changed.",severity:"warning"},
+ "room_scan.review_required":{title:"Room scan review required",body:"A room scan is ready for human review.",severity:"info"},
+ "room_scan.approved":{title:"Room scan approved",body:"A room scan snapshot was approved.",severity:"success"},
+ "room_scan.rejected":{title:"Room scan rejected",body:"A room scan was rejected.",severity:"warning"},
+ "room_scan.quantities_ready":{title:"Room quantities ready",body:"Room scan quantities were calculated.",severity:"success"}
 };
 export const notificationCopy=(eventType:NotificationEventType)=>copy[eventType];
 export const deduplicationKey=(eventType:NotificationEventType,entityId:string,recipientId:string,windowKey="event")=>createHash("sha256").update(`${eventType}:${entityId}:${recipientId}:${windowKey}`).digest("hex");
