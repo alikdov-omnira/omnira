@@ -44,6 +44,10 @@ import {AcceptDocumentSuggestionRequestSchema,AddClassificationCorrectionRequest
 import {DocumentReviewService} from "./application/document-review/document-review-service.js";
 import {DocumentReviewRepository} from "./infrastructure/document-review/document-review-repository.js";
 import {NoopDocumentSuggestionProvider} from "./infrastructure/document-review/noop-document-suggestion-provider.js";
+import {CancelDocumentSuggestionRequestSchema,DocumentSuggestionRequestListQuerySchema,DocumentSuggestionRequestParamsSchema,RetryDocumentSuggestionRequestSchema} from "@odls/contracts";
+import {createDocumentSuggestionProvider} from "./infrastructure/document-suggestion/document-suggestion-provider-factory.js";
+import {DocumentSuggestionRequestRepository} from "./infrastructure/document-suggestion/document-suggestion-repository.js";
+import {DocumentSuggestionRequestService} from "./application/document-suggestion/document-suggestion-request-service.js";
 
 dotenv.config({ path: join(import.meta.dirname, "../../../../.env") });
 
@@ -76,7 +80,7 @@ export function buildServer(): FastifyInstance<any, any, any, any> {
   const ocrProvider=pool?new TesseractOcrProvider():undefined;
   const ocrService=pool&&ocrProvider?new OcrService(pool,ocrProvider):undefined;
   const analysisService=pool?new DocumentAnalysisService(new DocumentAnalysisRepository(pool),new DeterministicDocumentClassifier()):undefined;
-  const reviewService=pool?new DocumentReviewService(new DocumentReviewRepository(pool),new NoopDocumentSuggestionProvider()):undefined;
+  const suggestionProviderSelection=createDocumentSuggestionProvider(),reviewService=pool?new DocumentReviewService(new DocumentReviewRepository(pool),new NoopDocumentSuggestionProvider()):undefined,suggestionRequestService=pool?new DocumentSuggestionRequestService(new DocumentSuggestionRequestRepository(pool),suggestionProviderSelection.provider,suggestionProviderSelection.config):undefined;
   const jwtSecret = process.env.JWT_SECRET ?? "development-only-secret-change-me-32chars";
   void app.register(helmet); void app.register(jwt, { secret:jwtSecret }); void app.register(multipart,{limits:{fileSize:scannerEnvironmentInteger("SCANNER_MAX_UPLOAD_BYTES",25*1024*1024,1,1024*1024*1024),files:1,fields:12}});
   app.decorateRequest("claims", null);
@@ -112,6 +116,8 @@ export function buildServer(): FastifyInstance<any, any, any, any> {
   function ocr(){if(!ocrService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return ocrService;}
   function analysis(){if(!analysisService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return analysisService;}
   function reviews(){if(!reviewService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return reviewService;}
+  function suggestionRequests(){if(!suggestionRequestService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return suggestionRequestService;}
+  function publicSuggestionRequest(value:any){const{snapshotFingerprint:_,requestedBy:__,...result}=value;return result;}
   function notifications(){if(!notificationService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return notificationService;}
   function notificationActor(request:any):NotificationActor{return {id:request.claims.sub,tenantId:request.claims.tenantId,permissions:request.claims.permissions,correlationId:String(request.headers["x-correlation-id"]??request.id)};}
   function analytics(){if(!analyticsService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return analyticsService;}
@@ -297,8 +303,12 @@ export function buildServer(): FastifyInstance<any, any, any, any> {
   app.post("/api/v1/document-reviews/:reviewId/request-changes",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await reviews().requestChanges(financeActor(request),DocumentReviewParamsSchema.parse(request.params).reviewId,RequestDocumentReviewChangesRequestSchema.parse(request.body))})));
   app.post("/api/v1/document-reviews/:reviewId/reject",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await reviews().reject(financeActor(request),DocumentReviewParamsSchema.parse(request.params).reviewId,RejectDocumentReviewRequestSchema.parse(request.body))})));
   app.get("/api/v1/documents/:documentId/approved-data",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await reviews().approved(financeActor(request),DocumentReviewDocumentParamsSchema.parse(request.params).documentId)})));
-  app.post("/api/v1/document-reviews/:reviewId/suggestions",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const b=RequestDocumentSuggestionsRequestSchema.parse(request.body);return{data:await reviews().requestSuggestions(financeActor(request),DocumentReviewParamsSchema.parse(request.params).reviewId,b.expectedVersion)};},201));
+  app.post("/api/v1/document-reviews/:reviewId/suggestions",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const b=RequestDocumentSuggestionsRequestSchema.parse(request.body);return{data:publicSuggestionRequest(await suggestionRequests().create(financeActor(request),DocumentReviewParamsSchema.parse(request.params).reviewId,b.expectedVersion))};},202));
   app.get("/api/v1/document-reviews/:reviewId/suggestions",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await reviews().suggestions(financeActor(request),DocumentReviewParamsSchema.parse(request.params).reviewId)})));
+  app.get("/api/v1/document-suggestion-requests",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const x=await suggestionRequests().list(financeActor(request),DocumentSuggestionRequestListQuerySchema.parse(request.query));return{data:x.items.map(publicSuggestionRequest),pagination:x.pagination};}));
+  app.get("/api/v1/document-suggestion-requests/:requestId",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:publicSuggestionRequest(await suggestionRequests().get(financeActor(request),DocumentSuggestionRequestParamsSchema.parse(request.params).requestId))})));
+  app.post("/api/v1/document-suggestion-requests/:requestId/retry",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const b=RetryDocumentSuggestionRequestSchema.parse(request.body);return{data:publicSuggestionRequest(await suggestionRequests().retry(financeActor(request),DocumentSuggestionRequestParamsSchema.parse(request.params).requestId,b.expectedVersion))};}));
+  app.post("/api/v1/document-suggestion-requests/:requestId/cancel",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const b=CancelDocumentSuggestionRequestSchema.parse(request.body);return{data:publicSuggestionRequest(await suggestionRequests().cancel(financeActor(request),DocumentSuggestionRequestParamsSchema.parse(request.params).requestId,b.expectedVersion))};}));
   app.post("/api/v1/document-suggestions/:suggestionId/accept",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await reviews().acceptSuggestion(financeActor(request),DocumentSuggestionParamsSchema.parse(request.params).suggestionId,AcceptDocumentSuggestionRequestSchema.parse(request.body))})));
   app.post("/api/v1/document-suggestions/:suggestionId/reject",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const b=RejectDocumentSuggestionRequestSchema.parse(request.body);return{data:await reviews().rejectSuggestion(financeActor(request),DocumentSuggestionParamsSchema.parse(request.params).suggestionId,b.expectedVersion)};}));
   app.get("/api/v1/notifications",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const result=await notifications().list(notificationActor(request),NotificationListQuerySchema.parse(request.query));return {data:result.items,pagination:result.pagination};}));

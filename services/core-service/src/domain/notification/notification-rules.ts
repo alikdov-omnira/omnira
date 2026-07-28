@@ -43,7 +43,13 @@ const copy:Record<NotificationEventType,{title:string;body:string;severity:Notif
  "document.suggestions_requested":{title:"Suggestions requested",body:"Document review suggestions were requested.",severity:"info"},
  "document.suggestion_created":{title:"Suggestion created",body:"A document review suggestion was created.",severity:"info"},
  "document.suggestion_accepted":{title:"Suggestion accepted",body:"A document review suggestion was accepted.",severity:"success"},
- "document.suggestion_rejected":{title:"Suggestion rejected",body:"A document review suggestion was rejected.",severity:"warning"}
+ "document.suggestion_rejected":{title:"Suggestion rejected",body:"A document review suggestion was rejected.",severity:"warning"},
+ "document.suggestion_request_created":{title:"AI review queued",body:"Document suggestions were queued.",severity:"info"},
+ "document.suggestion_request_started":{title:"AI review started",body:"Document suggestion processing started.",severity:"info"},
+ "document.suggestion_request_completed":{title:"AI review completed",body:"Document suggestions are ready for review.",severity:"success"},
+ "document.suggestion_request_failed":{title:"AI review failed",body:"Document suggestion processing failed safely.",severity:"warning"},
+ "document.suggestion_request_cancelled":{title:"AI review cancelled",body:"Document suggestion processing was cancelled.",severity:"warning"},
+ "document.suggestion_request_stale":{title:"AI review stale",body:"Document suggestions were discarded because the review changed.",severity:"warning"}
 };
 export const notificationCopy=(eventType:NotificationEventType)=>copy[eventType];
 export const deduplicationKey=(eventType:NotificationEventType,entityId:string,recipientId:string,windowKey="event")=>createHash("sha256").update(`${eventType}:${entityId}:${recipientId}:${windowKey}`).digest("hex");
