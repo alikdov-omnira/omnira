@@ -1,0 +1,22 @@
+import{readFileSync}from"node:fs";import{describe,expect,it}from"vitest";import{TechnicalAssignmentService}from"../src/application/technical-assignment/technical-assignment-service.js";
+const accepted=(id:string,type:string)=>({id,statementType:type,category:type,description:type,sourceType:"customer",reviewStatus:"accepted",blocking:false,authorId:"u",createdAt:"2026-01-01T00:00:00.000Z",applicability:[{targetType:"entire_object",included:true}]});
+const content:any={schemaVersion:"technical-assignment-v1",tenantId:"t",projectId:"p",assignmentId:"a",revisionId:"r",revisionNumber:1,statusCaptured:"approved",statements:[accepted("w","requested_work")],constraints:[accepted("c","preservation")],preferences:[accepted("p","preference")],exclusions:[accepted("e","exclusion")],customerSuppliedItems:[{id:"i",description:"Tile",category:"tile",availabilityStatus:"available",installationExpected:true}],schedule:{desiredStartDate:"2026-01-01"},openNonBlockingItems:[{id:"n",itemType:"clarification_required",description:"note",blocking:false,status:"open"}],approvedBy:"u",approvedAt:"2026-01-01T00:00:00.000Z"};
+const snapshot={id:"s",assignmentId:"a",revisionId:"r",revisionNumber:1,content,contentFingerprint:"f".repeat(64),schemaVersion:"technical-assignment-v1"};
+const db:any={query:async()=>({rows:[snapshot]})},repo:any={transaction:async(_t:string,fn:any)=>fn(db),audit:async()=>{},event:async()=>{}},service=new TechnicalAssignmentService(repo),actor:any={id:"u",tenantId:"t",permissions:["technical_assignments.snapshots.read"],correlationId:"c",actorType:"human"};
+describe("approved technical assignment boundary",()=>{
+ it("contains approved intent only",async()=>expect((await service.boundary(actor,"a")).requestedWork.map(x=>x.id)).toEqual(["w"]));
+ it("preserves statement provenance",async()=>expect((await service.boundary(actor,"a")).requestedWork[0].sourceType).toBe("customer"));
+ it("preserves deterministic snapshot identity",async()=>expect((await service.boundary(actor,"a")).snapshotFingerprint).toBe("f".repeat(64)));
+ it("excludes rejected statements",async()=>expect((await service.boundary(actor,"a")).requestedWork.every(x=>x.reviewStatus==="accepted")).toBe(true));
+ it("excludes superseded statements",async()=>expect((await service.boundary(actor,"a")).requestedWork.some(x=>x.reviewStatus==="superseded")).toBe(false));
+ it("includes explicit exclusions",async()=>expect((await service.boundary(actor,"a")).exclusions[0].statementType).toBe("exclusion"));
+ it("includes applicable constraints",async()=>expect((await service.boundary(actor,"a")).constraints[0].applicability[0].targetType).toBe("entire_object"));
+ it("includes customer supplied declarations",async()=>expect((await service.boundary(actor,"a")).customerSuppliedItems[0].description).toBe("Tile"));
+ it("does not resolve Work Scope",async()=>expect(await service.boundary(actor,"a")).not.toHaveProperty("workScope"));
+ it("does not calculate geometry",async()=>expect(await service.boundary(actor,"a")).not.toHaveProperty("quantities"));
+ it("does not expose technology",async()=>expect(await service.boundary(actor,"a")).not.toHaveProperty("technology"));
+ it("does not expose norms",async()=>expect(await service.boundary(actor,"a")).not.toHaveProperty("norms"));
+ it("does not expose pricing",async()=>expect(await service.boundary(actor,"a")).not.toHaveProperty("prices"));
+ it("does not create an estimate",async()=>expect(await service.boundary(actor,"a")).not.toHaveProperty("estimateId"));
+ it("has no Room Scanner implementation dependency",()=>{const source=readFileSync(new URL("../src/application/technical-assignment/technical-assignment-service.ts",import.meta.url),"utf8");expect(source).not.toMatch(/room-scanner|RoomScanRepository|approved-scan-snapshot-reader/);});
+});

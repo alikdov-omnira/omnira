@@ -1,0 +1,2 @@
+import type{PoolClient}from"pg";import type{TechnicalAssignmentActor}from"../../authorization/technical-assignment-policy.js";
+export interface TechnicalAssignmentRepositoryPort{transaction<T>(tenantId:string,work:(db:PoolClient)=>Promise<T>):Promise<T>;audit(db:PoolClient,actor:TechnicalAssignmentActor,action:string,assignmentId:string,metadata?:Record<string,unknown>):Promise<void>;event(db:PoolClient,actor:TechnicalAssignmentActor,eventType:string,assignmentId:string,metadata?:Record<string,unknown>):Promise<void>;}

@@ -11,7 +11,8 @@ export type DomainErrorCode =
   | "REVIEW_NOT_FOUND" | "REVIEW_INPUT_NOT_AVAILABLE" | "REVIEW_ALREADY_ACTIVE" | "REVIEW_ALREADY_APPROVED" | "REVIEW_VERSION_CONFLICT"
   | "REVIEW_FIELD_INVALID" | "REVIEW_CLASSIFICATION_INVALID" | "REVIEW_VALIDATION_FAILED" | "REVIEW_LIMIT_EXCEEDED" | "REVIEW_REASON_INVALID"
   | "APPROVED_DATA_NOT_FOUND" | "SUGGESTION_NOT_FOUND" | "SUGGESTION_VERSION_CONFLICT" | "SUGGESTION_TIMEOUT" | "SUGGESTION_OUTPUT_INVALID"
-  | "AI_REQUEST_NOT_FOUND"|"AI_REQUEST_VERSION_CONFLICT"|"AI_REQUEST_LIMIT_EXCEEDED"|"AI_REQUEST_STALE"|"AI_REQUEST_CANCELLED"|"AI_PROVIDER_TIMEOUT"|"AI_PROVIDER_RATE_LIMITED"|"AI_PROVIDER_UNAVAILABLE"|"AI_PROVIDER_AUTH_FAILED"|"AI_PROVIDER_INVALID_RESPONSE"|"AI_PROVIDER_SCHEMA_ERROR"|"AI_PROVIDER_REQUEST_REJECTED";
+  | "AI_REQUEST_NOT_FOUND"|"AI_REQUEST_VERSION_CONFLICT"|"AI_REQUEST_LIMIT_EXCEEDED"|"AI_REQUEST_STALE"|"AI_REQUEST_CANCELLED"|"AI_PROVIDER_TIMEOUT"|"AI_PROVIDER_RATE_LIMITED"|"AI_PROVIDER_UNAVAILABLE"|"AI_PROVIDER_AUTH_FAILED"|"AI_PROVIDER_INVALID_RESPONSE"|"AI_PROVIDER_SCHEMA_ERROR"|"AI_PROVIDER_REQUEST_REJECTED"
+  | "TECHNICAL_ASSIGNMENT_NOT_FOUND"|"TECHNICAL_ASSIGNMENT_INVALID_TRANSITION"|"TECHNICAL_ASSIGNMENT_NOT_READY"|"TECHNICAL_ASSIGNMENT_ALREADY_APPROVED"|"TECHNICAL_ASSIGNMENT_CANCELLED"|"TECHNICAL_ASSIGNMENT_SUPERSEDED"|"TECHNICAL_ASSIGNMENT_BLOCKING_ITEM_UNRESOLVED"|"TECHNICAL_ASSIGNMENT_REJECTED_REQUIREMENT"|"TECHNICAL_ASSIGNMENT_INVALID_APPLICABILITY"|"TECHNICAL_ASSIGNMENT_INVALID_STATEMENT"|"TECHNICAL_ASSIGNMENT_SNAPSHOT_INVALID";
 
 export class DomainError extends Error {
   constructor(public readonly code: DomainErrorCode, public readonly statusCode: number, message: string, public readonly details: Record<string, unknown> = {}) { super(message); }
@@ -30,5 +31,6 @@ export const domainErrors = {
   imageProcessing: (message = "Image processing failed") => new DomainError("IMAGE_PROCESSING_FAILED", 422, message),
   ocr: (code:Extract<DomainErrorCode,`OCR_${string}`>,statusCode:number,message:string) => new DomainError(code,statusCode,message),
   analysis: (code:Extract<DomainErrorCode,`ANALYSIS_${string}`>,statusCode:number,message:string) => new DomainError(code,statusCode,message),
-  review: (code:Extract<DomainErrorCode,`REVIEW_${string}`|`APPROVED_${string}`|`SUGGESTION_${string}`|`AI_${string}`>,statusCode:number,message:string) => new DomainError(code,statusCode,message)
+  review: (code:Extract<DomainErrorCode,`REVIEW_${string}`|`APPROVED_${string}`|`SUGGESTION_${string}`|`AI_${string}`>,statusCode:number,message:string) => new DomainError(code,statusCode,message),
+  technicalAssignment:(code:Extract<DomainErrorCode,`TECHNICAL_ASSIGNMENT_${string}`>,statusCode:number,message:string,details:Record<string,unknown>={})=>new DomainError(code,statusCode,message,details)
 };

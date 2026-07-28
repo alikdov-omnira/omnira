@@ -53,7 +53,16 @@ const copy:Record<NotificationEventType,{title:string;body:string;severity:Notif
  "room_scan.review_required":{title:"Room scan review required",body:"A room scan is ready for human review.",severity:"info"},
  "room_scan.approved":{title:"Room scan approved",body:"A room scan snapshot was approved.",severity:"success"},
  "room_scan.rejected":{title:"Room scan rejected",body:"A room scan was rejected.",severity:"warning"},
- "room_scan.quantities_ready":{title:"Room quantities ready",body:"Room scan quantities were calculated.",severity:"success"}
+ "room_scan.quantities_ready":{title:"Room quantities ready",body:"Room scan quantities were calculated.",severity:"success"},
+ "technical_assignment.created":{title:"Technical assignment created",body:"A technical assignment was created.",severity:"info"},
+ "technical_assignment.lifecycle_changed":{title:"Technical assignment updated",body:"The technical assignment lifecycle changed.",severity:"info"},
+ "technical_assignment.statement_changed":{title:"Technical assignment updated",body:"Technical assignment content changed.",severity:"info"},
+ "technical_assignment.statement_reviewed":{title:"Statement reviewed",body:"A technical assignment statement was reviewed.",severity:"info"},
+ "technical_assignment.open_item_changed":{title:"Open item updated",body:"A technical assignment open item changed.",severity:"info"},
+ "technical_assignment.readiness_requested":{title:"Technical assignment ready",body:"A technical assignment is ready for approval.",severity:"info"},
+ "technical_assignment.approved":{title:"Technical assignment approved",body:"A technical assignment snapshot was approved.",severity:"success"},
+ "technical_assignment.cancelled":{title:"Technical assignment cancelled",body:"A technical assignment was cancelled.",severity:"warning"},
+ "technical_assignment.revision_created":{title:"Technical assignment revised",body:"A successor technical assignment revision was created.",severity:"info"}
 };
 export const notificationCopy=(eventType:NotificationEventType)=>copy[eventType];
 export const deduplicationKey=(eventType:NotificationEventType,entityId:string,recipientId:string,windowKey="event")=>createHash("sha256").update(`${eventType}:${entityId}:${recipientId}:${windowKey}`).digest("hex");
