@@ -423,7 +423,7 @@ export const TechnicalAssignmentTransitionRequestSchema=z.object({expectedVersio
 export const TechnicalAssignmentRevisionRequestSchema=z.object({expectedVersion:z.number().int().positive().safe(),summary:z.string().trim().max(5000).optional()}).strict();
 const TechnicalApplicabilitySchema=z.object({targetType:z.enum(["entire_object","room","zone","building_element","future_scope_reference"]),targetReference:z.string().trim().min(1).max(300).optional(),included:z.boolean().default(true)}).strict();
 const TechnicalSourceSchema=z.enum(["customer","company_employee","project_manager","foreman","designer","engineer","imported_document","ai_suggestion_accepted","other"]);
-const TechnicalStatementBase={category:z.string().trim().min(1).max(120),description:z.string().trim().min(1).max(5000),sourceType:TechnicalSourceSchema,sourceReference:z.string().trim().min(1).max(300).optional(),certainty:z.number().finite().min(0).max(1).optional(),blocking:z.boolean().default(false),supersedesStatementId:z.string().uuid().optional(),applicability:z.array(TechnicalApplicabilitySchema).min(1).max(100),expectedVersion:z.number().int().positive().safe()};
+const TechnicalStatementBase={category:z.string().trim().min(1).max(120),description:z.string().trim().min(1).max(5000),sourceType:TechnicalSourceSchema,sourceReference:z.string().trim().min(1).max(300).optional(),certainty:z.number().finite().min(0).max(1).optional(),blocking:z.boolean().default(false),supersedesStatementId:z.string().uuid().optional(),applicability:z.array(TechnicalApplicabilitySchema).min(1).max(100),expectedVersion:z.number().int().positive().safe(),constraintKind:z.never().optional()};
 export const AddTechnicalAssignmentStatementRequestSchema=z.discriminatedUnion("statementType",[
  z.object({...TechnicalStatementBase,statementType:z.literal("project_intent"),intentKind:z.enum(["renovation","reconstruction","finishing","shell_and_core_completion","partial_repair","maintenance","installation","dismantling","other"])}).strict(),
  z.object({...TechnicalStatementBase,statementType:z.literal("requested_work"),workCategory:z.enum(["demolition","partition_work","plastering","leveling","waterproofing","tiling","flooring","painting","wallpapering","ceilings","electrical","plumbing","heating","ventilation","doors","windows","built_in_furniture","equipment_installation","cleanup","other"])}).strict(),
@@ -448,6 +448,7 @@ export const SetTechnicalAssignmentBudgetRequestSchema=z.discriminatedUnion("bud
 ]);
 
 export const DesignProjectStatusSchema=z.enum(["draft","collecting_information","review_required","changes_requested","ready_for_approval","approved","cancelled","superseded"]);
+export const ConstructionContextListQuerySchema=z.object({projectId:z.string().uuid().optional()}).strict();
 export const DesignProjectParamsSchema=z.object({designProjectId:z.string().uuid()}).strict();
 export const DesignDecisionParamsSchema=z.object({designProjectId:z.string().uuid(),decisionId:z.string().uuid()}).strict();
 export const DesignAlternativeParamsSchema=z.object({designProjectId:z.string().uuid(),decisionId:z.string().uuid(),alternativeId:z.string().uuid()}).strict();

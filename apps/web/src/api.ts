@@ -14,6 +14,12 @@ export type ProjectAction="plan"|"start"|"pause"|"resume"|"complete"|"cancel";
 export type TaskAction="start"|"block"|"resume"|"complete"|"cancel";
 export type ReportName="accounts-receivable"|"profitability"|"deadlines"|"workload"|"documents"|"activity";
 export type ReportEnvelope={data:any[];pagination:{page:number;pageSize:number;total:number;totalPages:number};range:{start:string;endExclusive:string;timezone:"UTC"}};
+export type PageEnvelope<T>={data:T[];pagination:{page:number;pageSize:number;total:number;totalPages:number}};
+export type RoomScanDto={id:string;propertyId:string;projectId?:string;status:string;revision:number;notes?:string;version:number;createdAt:string;updatedAt:string};
+export type SourceSnapshotDto={snapshotId?:string;fingerprint?:string;schemaVersion?:string};
+export type TechnicalAssignmentDto={id:string;projectId:string;propertyId?:string;code:string;displayName:string;revisionId:string;revisionNumber:number;status:string;version:number;summary?:string;approvedAt?:string;approvedBy?:string;statements?:Array<Record<string,any>>;openItems?:Array<Record<string,any>>;customerSuppliedItems?:Array<Record<string,any>>;schedule?:Record<string,any>;budget?:Record<string,any>};
+export type DesignProjectDto={id:string;projectId:string;propertyId?:string;code:string;displayName:string;revisionId:string;revisionNumber:number;status:string;version:number;technicalAssignmentSnapshotId?:string;technicalAssignmentFingerprint?:string;technicalAssignmentSchemaVersion?:string;roomScanSnapshotId?:string;roomScanFingerprint?:string;roomScanSchemaVersion?:string;decisions?:Array<Record<string,any>>;openItems?:Array<Record<string,any>>;references?:Array<Record<string,any>>};
+export type ApprovedSnapshotDto={id:string;contentFingerprint:string;schemaVersion?:string;approvedAt?:string;approvedBy?:string;revisionNumber?:number;content?:Record<string,any>};
 export function mergeNotifications(current:NotificationContract[],incoming:NotificationContract[]):NotificationContract[]{const merged=new Map(current.map(x=>[x.id,x]));for(const item of incoming)merged.set(item.id,item);return [...merged.values()].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));}
 
 export class ApiError extends Error {
@@ -48,6 +54,7 @@ export const api={
   me:()=>raw<Session["user"]>("/auth/me"),
   company:()=>raw<{id:string;name:string;slug:string}>("/company"),
   list:<R extends Resource>(resource:R,search="")=>raw<EntityByResource[R][]>(`/${resource}?pageSize=100${search?`&search=${encodeURIComponent(search)}`:""}`),
+  projectsPage:(query:string)=>envelope<PageEnvelope<ProjectContract>>(`/projects?${query}`),
   get:<R extends Resource>(resource:R,id:string)=>raw<EntityByResource[R]>(`/${resource}/${id}`),
   create:<R extends Resource>(resource:R,body:CreateByResource[R])=>raw<EntityByResource[R]>(`/${resource}`,json("POST",body)),
   update:<R extends Resource>(resource:R,id:string,body:UpdateByResource[R])=>raw<EntityByResource[R]>(`/${resource}/${id}`,json("PATCH",body)),
@@ -143,6 +150,26 @@ export const api={
   estimateMaterials:(query:string)=>envelope<{data:EstimateMaterialContract[];pagination:{page:number;pageSize:number;total:number;totalPages:number}}>(`/estimate-materials?${query}`),
   updateEstimateMaterial:(id:string,body:unknown)=>raw<EstimateMaterialContract>(`/estimate-materials/${id}`,json("PATCH",body)),
   deleteEstimateMaterial:(id:string,expectedVersion:number)=>raw<{id:string}>(`/estimate-materials/${id}`,json("DELETE",{expectedVersion})),
+  roomScans:(projectId?:string)=>envelope<PageEnvelope<RoomScanDto>>(`/room-scans?page=1&pageSize=25&sortBy=updatedAt&sortOrder=desc${projectId?`&projectId=${encodeURIComponent(projectId)}`:""}`),
+  roomScan:(id:string)=>raw<RoomScanDto>(`/room-scans/${id}`),
+  roomScanSnapshot:(id:string)=>raw<ApprovedSnapshotDto>(`/room-scans/${id}/approved-snapshot`),
+  roomScanAction:(id:string,action:"start-capture"|"submit-review"|"reject"|"cancel"|"complete-capture"|"approve",expectedVersion:number)=>raw<any>(`/room-scans/${id}/${action}`,json("POST",{expectedVersion})),
+  technicalAssignments:(projectId?:string)=>raw<TechnicalAssignmentDto[]>(`/technical-assignments${projectId?`?projectId=${encodeURIComponent(projectId)}`:""}`),
+  technicalAssignment:(id:string)=>raw<TechnicalAssignmentDto>(`/technical-assignments/${id}`),
+  technicalAssignmentSnapshot:(id:string)=>raw<ApprovedSnapshotDto>(`/technical-assignments/${id}/approved-snapshot`),
+  technicalAssignmentTransition:(id:string,status:string,expectedVersion:number)=>raw<TechnicalAssignmentDto>(`/technical-assignments/${id}/transition`,json("POST",{status,expectedVersion})),
+  technicalAssignmentReadiness:(id:string,expectedVersion:number)=>raw<TechnicalAssignmentDto>(`/technical-assignments/${id}/readiness`,json("POST",{expectedVersion})),
+  technicalAssignmentApprove:(id:string,expectedVersion:number)=>raw<ApprovedSnapshotDto>(`/technical-assignments/${id}/approve`,json("POST",{expectedVersion})),
+  updateTechnicalStatement:(assignmentId:string,statementId:string,body:unknown)=>raw<TechnicalAssignmentDto>(`/technical-assignments/${assignmentId}/statements/${statementId}`,json("PATCH",body)),
+  reviewTechnicalStatement:(assignmentId:string,statementId:string,expectedVersion:number,decision:string)=>raw<TechnicalAssignmentDto>(`/technical-assignments/${assignmentId}/statements/${statementId}/review`,json("POST",{expectedVersion,decision})),
+  designProjects:(projectId?:string)=>raw<DesignProjectDto[]>(`/design-projects${projectId?`?projectId=${encodeURIComponent(projectId)}`:""}`),
+  designProject:(id:string)=>raw<DesignProjectDto>(`/design-projects/${id}`),
+  designProjectSnapshot:(id:string)=>raw<ApprovedSnapshotDto>(`/design-projects/${id}/approved-snapshot`),
+  designProjectTransition:(id:string,status:string,expectedVersion:number)=>raw<DesignProjectDto>(`/design-projects/${id}/transition`,json("POST",{status,expectedVersion})),
+  designProjectReadiness:(id:string,expectedVersion:number)=>raw<DesignProjectDto>(`/design-projects/${id}/readiness`,json("POST",{expectedVersion})),
+  designProjectApprove:(id:string,expectedVersion:number)=>raw<ApprovedSnapshotDto>(`/design-projects/${id}/approve`,json("POST",{expectedVersion})),
+  updateDesignDecision:(designId:string,decisionId:string,body:unknown)=>raw<DesignProjectDto>(`/design-projects/${designId}/decisions/${decisionId}`,json("PATCH",body)),
+  reviewDesignDecision:(designId:string,decisionId:string,expectedVersion:number,decision:string)=>raw<DesignProjectDto>(`/design-projects/${designId}/decisions/${decisionId}/review`,json("POST",{expectedVersion,decision})),
   exportReport:async(name:ReportName,query="range=30")=>{const headers=new Headers();if(session)headers.set("authorization",`Bearer ${session.accessToken}`);const response=await fetch(`${base}/reports/${name}/export?${query}`,{headers});if(!response.ok){const body=await response.json().catch(()=>({}));throw new ApiError(response.status,body?.error?.code??"REQUEST_FAILED");}return {blob:await response.blob(),disposition:response.headers.get("content-disposition")};},
   logout:()=>session?raw<{revoked:boolean}>("/auth/logout",json("POST",{refreshToken:session.refreshToken})):Promise.resolve()
 };
