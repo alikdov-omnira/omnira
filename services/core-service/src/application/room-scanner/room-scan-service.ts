@@ -1,7 +1,7 @@
 import type{RoomScanActor}from"../../authorization/room-scanner-policy.js";
 import{requireRoomScan}from"../../authorization/room-scanner-policy.js";
 import{assertOptimisticVersion}from"../../domain/room-scanner/room-scanner-rules.js";
-import type{AddMeasurementCommand,AddObservationCommand,AddOpeningCommand,AddRoomCommand,AddSurfaceCommand,AssociateAttachmentCommand,CreateRoomScanCommand,RemoveAttachmentCommand,ReviewFactCommand,RoomScanListQuery}from"./room-scan-commands.js";
+import type{AddMeasurementCommand,AddObservationCommand,AddOpeningCommand,AddRoomCommand,AddSurfaceCommand,AssociateAttachmentCommand,CreateRoomScanCommand,RemoveAttachmentCommand,ReviewFactCommand,RoomScanEntityType,RoomScanListQuery,UpdateAttachmentCommand}from"./room-scan-commands.js";
 import type{RoomScanPersistencePort}from"./room-scan-repository.js";
 
 /** Coordinates authorization and typed Scanner use cases; persistence remains behind the port. */
@@ -26,4 +26,7 @@ export class RoomScanService{
  snapshot(a:RoomScanActor,id:string){requireRoomScan(a,"quantities.read");return this.store.snapshot(a,id);}
  associateAttachment(a:RoomScanActor,id:string,input:AssociateAttachmentCommand){requireRoomScan(a,"edit");return this.store.associateAttachment(a,id,input);}
  removeAttachment(a:RoomScanActor,id:string,attachmentId:string,input:RemoveAttachmentCommand){requireRoomScan(a,"edit");return this.store.removeAttachment(a,id,attachmentId,input);}
+ workspace(a:RoomScanActor,id:string){requireRoomScan(a,"read");return this.store.workspace(a,id);}
+ updateAttachment(a:RoomScanActor,id:string,attachmentId:string,input:UpdateAttachmentCommand){requireRoomScan(a,"edit");return this.store.updateAttachment(a,id,attachmentId,input);}
+ deleteEntity(a:RoomScanActor,id:string,type:RoomScanEntityType,entityId:string,v:number){requireRoomScan(a,"edit");assertOptimisticVersion(v);return this.store.deleteEntity(a,id,type,entityId,v);}
 }
