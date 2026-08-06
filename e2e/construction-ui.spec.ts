@@ -5,7 +5,7 @@ const assignmentId="10000000-0000-4000-8000-000000000003";
 const designId="10000000-0000-4000-8000-000000000020";
 const decisionId="10000000-0000-4000-8000-000000000022";
 
-async function login(page:any,email="admin@demo.odls"){await page.goto("/");await page.getByLabel("Tenant").fill("demo");await page.getByLabel("Email").fill(email);await page.getByLabel("Password").fill("DemoPassword!2026");await page.getByRole("button",{name:"Sign in"}).click();await expect(page.getByRole("heading",{name:"Executive Dashboard"})).toBeVisible();}
+async function login(page:any,email="admin@demo.odls"){await page.goto("/#login");await page.getByLabel("Tenant").fill("demo");await page.getByLabel("Email").fill(email);await page.getByLabel("Password").fill("DemoPassword!2026");await page.getByRole("button",{name:"Sign in"}).click();await expect(page.getByRole("heading",{name:"Executive Dashboard"})).toBeVisible();}
 async function workspace(page:any){await page.getByRole("button",{name:"Projects",exact:true}).click();await expect(page.getByRole("heading",{name:"Projects",exact:true})).toBeVisible();await page.getByLabel("Search projects").fill("Demo Project");await page.getByRole("button",{name:"Open workspace"}).click();await expect(page.getByRole("heading",{name:"Demo Project"})).toBeVisible();}
 
 test.describe.serial("Construction UI project workflow",()=>{

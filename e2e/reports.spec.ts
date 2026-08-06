@@ -2,7 +2,7 @@ import {expect,test,type APIRequestContext} from "@playwright/test";
 import {readFile} from "node:fs/promises";
 
 async function login(page:any,email="admin@demo.odls"){
- await page.goto("/");await page.getByLabel("Tenant").fill("demo");await page.getByLabel("Email").fill(email);await page.getByLabel("Password").fill("DemoPassword!2026");await page.getByRole("button",{name:"Sign in"}).click();
+ await page.goto("/#login");await page.getByLabel("Tenant").fill("demo");await page.getByLabel("Email").fill(email);await page.getByLabel("Password").fill("DemoPassword!2026");await page.getByRole("button",{name:"Sign in"}).click();
 }
 async function createReportFixtures(request:APIRequestContext){
  const stamp=Date.now(),loginResponse=await request.post("http://127.0.0.1:3100/api/v1/auth/login",{data:{tenantSlug:"demo",email:"admin@demo.odls",password:"DemoPassword!2026"}}),token=(await loginResponse.json()).data.accessToken,headers={authorization:`Bearer ${token}`},date=(days:number)=>new Date(Date.now()+days*86400000).toISOString().slice(0,10);
