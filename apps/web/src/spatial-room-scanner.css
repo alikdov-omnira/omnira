@@ -1,0 +1,12 @@
+.spatial-workspace{display:grid;gap:1rem;background:#fff;border:1px solid #dce5ee;border-radius:14px;padding:clamp(1rem,3vw,1.5rem)}
+.spatial-workspace>header,.spatial-review>header{display:flex;justify-content:space-between;gap:1rem;align-items:start}
+.spatial-workspace h3,.spatial-workspace h4,.spatial-workspace p{margin:.2rem 0}
+.spatial-honesty{padding:1rem;border:1px solid #efc576;border-radius:12px;background:#fff8e8}
+.spatial-honesty ul{max-height:9rem;overflow:auto;font-size:.8rem}
+.spatial-grid{display:grid;grid-template-columns:minmax(280px,1fr) minmax(280px,1fr);gap:1rem}
+.spatial-plan{width:100%;min-height:240px;background:#f4f8fb;border:1px solid #cbd8e5;border-radius:12px}
+.spatial-plan path{fill:#2e7ca31c;stroke:#17688f;stroke-width:3}.spatial-plan circle{fill:#fff;stroke:#17688f;stroke-width:2}.spatial-plan text{font-size:12px;fill:#173047}
+.wall-elevations,.spatial-quantities{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.75rem}
+.wall-elevations article,.spatial-quantities article{display:grid;gap:.35rem;padding:.75rem;border:1px solid #dce5ee;border-radius:10px}
+.wall-elevations article div{max-height:100px;background:#e9f1f7;border:2px solid #58748e}.spatial-review{display:grid;gap:1rem;border-top:1px solid #dce5ee;padding-top:1rem}
+@media(max-width:700px){.spatial-grid{grid-template-columns:1fr}.spatial-plan{min-height:200px}}
