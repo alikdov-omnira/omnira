@@ -1,0 +1,1 @@
+import{domainErrors}from"../domain/errors.js";export type EngineeringCausalityActor={id:string;tenantId:string;permissions:readonly string[];correlationId:string};export function requireEngineeringCausality(a:EngineeringCausalityActor,p:"read"|"impact.read"){if(!a.permissions.includes(`engineering_causality.${p}`))throw domainErrors.forbidden()}
