@@ -418,6 +418,12 @@ export const DeleteRoomScanEntityParamsSchema=RoomScanParamsSchema.extend({entit
 export const DeleteRoomScanEntityRequestSchema=RoomScanVersionRequestSchema;
 export type AssociateRoomScanAttachmentRequest=z.infer<typeof AssociateRoomScanAttachmentRequestSchema>;
 export type DeviceCapabilityDescriptor=z.infer<typeof DeviceCapabilityDescriptorSchema>;
+export const ConstructionAssistantProjectParamsSchema=z.object({projectId:z.string().uuid()}).strict();
+export const ConstructionAssistantRecommendationParamsSchema=z.object({recommendationId:z.string().uuid()}).strict();
+export const ConstructionAssistantPhotoParamsSchema=RoomScanParamsSchema.extend({attachmentId:z.string().uuid()}).strict();
+export const ConstructionAssistantPhotoTagRequestSchema=z.object({condition:z.enum(["wet_wall","crack","dry","painted","prepared","damaged","completed"]),note:z.string().trim().max(2000).optional()}).strict();
+export const ConstructionAssistantWeatherRequestSchema=z.object({source:z.string().trim().min(1).max(120),sourceReference:z.string().trim().min(1).max(500),locationLabel:z.string().trim().min(1).max(300),verifiedAt:z.string().datetime(),forecasts:z.array(z.object({forecastAt:z.string().datetime(),temperatureC:z.number().finite().min(-100).max(80).optional(),humidityPercent:z.number().finite().min(0).max(100).optional(),precipitationProbability:z.number().finite().min(0).max(1).optional(),precipitationMm:z.number().finite().nonnegative().optional(),windSpeedMps:z.number().finite().nonnegative().optional(),condition:z.string().trim().max(120).optional()}).strict()).min(1).max(240)}).strict();
+export const ConstructionAssistantDecisionRequestSchema=z.object({decision:z.enum(["accepted","dismissed","deferred"]),comment:z.string().trim().max(2000).optional()}).strict();
 
 export const TechnicalAssignmentStatusSchema=z.enum(["draft","collecting_information","review_required","changes_requested","ready_for_approval","approved","cancelled","superseded"]);
 export const TechnicalAssignmentParamsSchema=z.object({assignmentId:z.string().uuid()}).strict();

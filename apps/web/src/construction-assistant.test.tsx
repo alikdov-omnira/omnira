@@ -1,0 +1,5 @@
+import React from"react";import{describe,expect,it,vi}from"vitest";import{renderToStaticMarkup}from"react-dom/server";import{ConstructionAssistantPanel}from"./construction-assistant-panel.js";import{api}from"./api.js";
+describe("Construction Assistant web boundary",()=>{const session:any={accessToken:"a",refreshToken:"r",user:{id:"u",email:"u@x",displayName:"U"},permissions:["construction_assistant.read","construction_assistant.analyze","construction_assistant.decide"]};
+ it("loads authoritative analysis rather than presenting invented content",()=>{vi.spyOn(api,"constructionAssistant").mockResolvedValue({health:"green",recommendations:[],weather:[],sourceAvailability:{weather:false}});const html=renderToStaticMarkup(<ConstructionAssistantPanel session={session} projectId="00000000-0000-4000-8000-000000000071"/>);expect(html).toContain("Loading verified construction analysis")});
+ it("exposes explicit analyze and human-decision API boundaries",()=>{expect(api.analyzeConstructionProject).toBeTypeOf("function");expect(api.constructionAssistantDecision).toBeTypeOf("function");expect(api.tagRoomScanPhoto).toBeTypeOf("function")});
+});

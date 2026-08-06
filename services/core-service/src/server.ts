@@ -62,6 +62,8 @@ import{DesignProjectService}from"./application/design-project/design-project-ser
 import{DesignProjectRepository}from"./infrastructure/design-project/design-project-repository.js";
 import{ApprovedRoomScanSnapshotReader,TechnicalAssignmentSnapshotReader}from"./infrastructure/design-project/source-snapshot-readers.js";
 import type{DesignProjectActor}from"./authorization/design-project-policy.js";
+import{ConstructionAssistantDecisionRequestSchema,ConstructionAssistantPhotoParamsSchema,ConstructionAssistantPhotoTagRequestSchema,ConstructionAssistantProjectParamsSchema,ConstructionAssistantRecommendationParamsSchema,ConstructionAssistantWeatherRequestSchema}from"@odls/contracts";
+import{ConstructionAssistantService,type ConstructionAssistantActor}from"./application/construction-assistant/construction-assistant-service.js";
 
 dotenv.config({ path: join(import.meta.dirname, "../../../../.env") });
 
@@ -98,6 +100,7 @@ export function buildServer(): FastifyInstance<any, any, any, any> {
   const roomScanService=pool?(()=>{const unit=new RoomScanRepository(pool);return new RoomScanService(new PostgresRoomScanPersistence(unit));})():undefined;
   const technicalAssignmentService=pool?new TechnicalAssignmentService(new TechnicalAssignmentRepository(pool)):undefined;
   const designProjectService=pool?new DesignProjectService(new DesignProjectRepository(pool),new TechnicalAssignmentSnapshotReader(pool),new ApprovedRoomScanSnapshotReader(pool)):undefined;
+  const constructionAssistantService=pool?new ConstructionAssistantService(pool):undefined;
   const jwtSecret = process.env.JWT_SECRET ?? "development-only-secret-change-me-32chars";
   void app.register(helmet); void app.register(jwt, { secret:jwtSecret }); void app.register(multipart,{limits:{fileSize:scannerEnvironmentInteger("SCANNER_MAX_UPLOAD_BYTES",25*1024*1024,1,1024*1024*1024),files:1,fields:12}});
   app.decorateRequest("claims", null);
@@ -140,6 +143,8 @@ export function buildServer(): FastifyInstance<any, any, any, any> {
   function technicalAssignmentActor(request:any):TechnicalAssignmentActor{return{id:request.claims.sub,tenantId:request.claims.tenantId,permissions:request.claims.permissions,correlationId:String(request.headers["x-correlation-id"]??request.id),actorType:"human"};}
   function designProjects(){if(!designProjectService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return designProjectService;}
   function designProjectActor(request:any):DesignProjectActor{return{id:request.claims.sub,tenantId:request.claims.tenantId,permissions:request.claims.permissions,correlationId:String(request.headers["x-correlation-id"]??request.id),actorType:"human"};}
+  function constructionAssistant(){if(!constructionAssistantService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return constructionAssistantService;}
+  function constructionAssistantActor(request:any):ConstructionAssistantActor{const value=String(request.headers["x-correlation-id"]??request.id);return{id:request.claims.sub,tenantId:request.claims.tenantId,permissions:request.claims.permissions,correlationId:/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)?value:randomUUID()};}
   function publicSuggestionRequest(value:any){const{snapshotFingerprint:_,requestedBy:__,...result}=value;return result;}
   function notifications(){if(!notificationService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return notificationService;}
   function notificationActor(request:any):NotificationActor{return {id:request.claims.sub,tenantId:request.claims.tenantId,permissions:request.claims.permissions,correlationId:String(request.headers["x-correlation-id"]??request.id)};}
@@ -401,6 +406,11 @@ export function buildServer(): FastifyInstance<any, any, any, any> {
   app.get("/api/v1/admin/notification-failures",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await notifications().failures(notificationActor(request))})));
   app.get("/api/v1/dashboard/executive",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await analytics().executive(analyticsActor(request),AnalyticsQuerySchema.parse(request.query))})));
   app.get("/api/v1/dashboard/project-health",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await analytics().health(analyticsActor(request))})));
+  app.get("/api/v1/construction-assistant/projects/:projectId",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await constructionAssistant().panel(constructionAssistantActor(request),ConstructionAssistantProjectParamsSchema.parse(request.params).projectId)})));
+  app.post("/api/v1/construction-assistant/projects/:projectId/analyze",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await constructionAssistant().analyze(constructionAssistantActor(request),ConstructionAssistantProjectParamsSchema.parse(request.params).projectId)}),201));
+  app.post("/api/v1/construction-assistant/projects/:projectId/weather",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await constructionAssistant().ingestWeather(constructionAssistantActor(request),ConstructionAssistantProjectParamsSchema.parse(request.params).projectId,ConstructionAssistantWeatherRequestSchema.parse(request.body))}),201));
+  app.post("/api/v1/construction-assistant/room-scans/:scanId/photos/:attachmentId/tags",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const p=ConstructionAssistantPhotoParamsSchema.parse(request.params);return{data:await constructionAssistant().tagPhoto(constructionAssistantActor(request),p.scanId,p.attachmentId,ConstructionAssistantPhotoTagRequestSchema.parse(request.body))};},201));
+  app.post("/api/v1/construction-assistant/recommendations/:recommendationId/decision",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await constructionAssistant().decide(constructionAssistantActor(request),ConstructionAssistantRecommendationParamsSchema.parse(request.params).recommendationId,ConstructionAssistantDecisionRequestSchema.parse(request.body))})));
   for(const report of ["accounts-receivable","revenue","expenses","profitability","tasks","deadlines","workload","documents","activity"] as const)app.get(`/api/v1/reports/${report}`,{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>analytics().report(analyticsActor(request),report,AnalyticsQuerySchema.parse(request.query))));
   app.get("/api/v1/reports/:report/export",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const {report}=AnalyticsReportParamsSchema.parse(request.params),result=await analytics().export(analyticsActor(request),report,AnalyticsQuerySchema.parse(request.query));return reply.header("content-type","text/csv; charset=utf-8").header("content-disposition",`attachment; filename="${result.filename}"`).header("x-export-row-count",result.rowCount).send(result.body);}));
   return app;
