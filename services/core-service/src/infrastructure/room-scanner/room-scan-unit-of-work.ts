@@ -1,0 +1,3 @@
+import type{PoolClient}from"pg";import type{RoomScanActor}from"../../authorization/room-scanner-policy.js";
+/** PostgreSQL-only transaction and event unit of work. Never exposed to application code. */
+export interface RoomScanRepositoryPort{transaction<T>(tenantId:string,work:(db:PoolClient)=>Promise<T>):Promise<T>;audit(db:PoolClient,actor:RoomScanActor,action:string,scanId:string,metadata?:Record<string,unknown>):Promise<void>;event(db:PoolClient,actor:RoomScanActor,eventType:"room_scan.review_required"|"room_scan.approved"|"room_scan.rejected"|"room_scan.quantities_ready",scanId:string,metadata?:Record<string,unknown>):Promise<void>}

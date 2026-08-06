@@ -1,0 +1,17 @@
+import type{MeasurementSource,Point2,RoomScanStatus}from"../../domain/room-scanner/room-scanner-types.js";
+export type RoomScanRecord={id:string;tenantId:string;propertyId:string;projectId:string|null;status:RoomScanStatus;revision:number;ingestionKey?:string|null;notes?:string|null;version:number;createdAt:Date|string;createdBy:string;updatedAt:Date|string;updatedBy:string};
+export type RoomScanListQuery={page:number;pageSize:number;propertyId?:string;projectId?:string;status?:RoomScanStatus;sortBy:"createdAt"|"updatedAt"|"status";sortOrder:"asc"|"desc"};
+export type RoomScanListResult={items:RoomScanRecord[];pagination:{page:number;pageSize:number;total:number;totalPages:number}};
+export type CreateRoomScanCommand={propertyId:string;projectId?:string|null;ingestionKey?:string;notes?:string};
+export type AddRoomCommand={name:string;roomType:string;floorNumber?:number;expectedVersion:number};
+export type AddSurfaceCommand={roomId:string;surfaceType:"wall"|"floor"|"ceiling"|"slope"|"column_face"|"niche_face"|"opening_reveal"|"other";label:string;polygon:Point2[];orientation?:number;confidence?:number;expectedVersion:number};
+export type AddMeasurementCommand={roomId?:string;surfaceId?:string;measurementType:string;source:MeasurementSource;originalValue:number;originalUnit:string;confidence?:number;capturedAt:string;attachmentFileId?:string;provenance?:string;idempotencyKey?:string;expectedVersion:number};
+export type AddOpeningCommand={roomId:string;surfaceId:string;openingType:"door"|"window"|"passage"|"service_opening"|"other";widthM:number;heightM:number;sillHeightM?:number;revealDepthM?:number;source:MeasurementSource;expectedVersion:number};
+export type AddObservationCommand={roomId?:string;surfaceId:string;observationKind:"flatness"|"defect"|"corner";observationType:string;source:MeasurementSource;confidence?:number;attachmentFileId?:string;notes?:string;metadata?:Record<string,unknown>;expectedVersion:number;[key:string]:unknown};
+export type ReviewFactCommand={entityType:"measurement"|"surface"|"opening"|"observation";entityId:string;decision:"confirmed"|"rejected";expectedVersion:number};
+export type ProcessingState="queued"|"processing"|"completed"|"failed";
+export type ProcessingResult={requestId:string;scanId:string;scanVersion:number;status:ProcessingState;attemptCount:number;requestedAt:Date|string;startedAt?:Date|string;completedAt?:Date|string;failedAt?:Date|string;failureCode?:string;result?:Record<string,unknown>};
+export type AssociateAttachmentCommand={fileObjectId:string;roomId?:string;purpose:"capture"|"measurement"|"observation"|"plan"|"technical_specification";expectedVersion:number};
+export type RemoveAttachmentCommand={expectedVersion:number};
+export type IdResult={id:string};
+export type SnapshotResult={id:string;scanId:string;contentFingerprint:string;content:Record<string,unknown>};

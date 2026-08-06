@@ -411,6 +411,9 @@ export type RoomScanOpeningPayload=z.infer<typeof AddRoomScanOpeningRequestSchem
 export type RoomScanObservationPayload=z.infer<typeof AddRoomScanObservationRequestSchema>;
 export const RoomScanAttachmentReferenceSchema=z.object({fileObjectId:z.string().uuid(),purpose:z.enum(["capture","measurement","observation","plan","technical_specification"])}).strict();
 export type RoomScanAttachmentReference=z.infer<typeof RoomScanAttachmentReferenceSchema>;
+export const AssociateRoomScanAttachmentRequestSchema=RoomScanAttachmentReferenceSchema.extend({roomId:z.string().uuid().optional(),expectedVersion:z.number().int().positive().safe()}).strict();
+export const RoomScanAttachmentParamsSchema=RoomScanParamsSchema.extend({attachmentId:z.string().uuid()}).strict();
+export type AssociateRoomScanAttachmentRequest=z.infer<typeof AssociateRoomScanAttachmentRequestSchema>;
 export type DeviceCapabilityDescriptor=z.infer<typeof DeviceCapabilityDescriptorSchema>;
 
 export const TechnicalAssignmentStatusSchema=z.enum(["draft","collecting_information","review_required","changes_requested","ready_for_approval","approved","cancelled","superseded"]);
