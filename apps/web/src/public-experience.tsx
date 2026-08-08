@@ -12,15 +12,26 @@ const lineage=[
  ["Original evidence","18 measurements","Scanner records and referenced photos"],
 ] as const;
 
+const introScenes=[
+ ["Silence","Everything begins in silence."],
+ ["Birth of light","A point appears. Energy gathers."],
+ ["OMNIRO awakens","The core forms. Intelligence awakens."],
+ ["First agent","Scanner connects. Reality capture begins."],
+ ["Data flows","Modules connect. Governed data starts to flow."],
+ ["Building forms","Evidence becomes an operational model."],
+ ["Domains expand","One core can govern connected domains."],
+ ["Enter the system","The cinematic universe becomes the product."],
+] as const;
+
 function Brand(){return <a className="public-brand" href="#public-top" aria-label="OMNIRA home"><img src="/brand/omnira-logo-dark.svg" alt="OMNIRA"/></a>}
 function Status({state}:{state:(typeof capabilities)[number]["state"]}){return <span className={`public-status status-${state}`}>{stateLabel[state]}</span>}
 
 function Birth({onComplete,locale,staticMode}:{onComplete:()=>void;locale:PublicLocale;staticMode:boolean}){
- const [step,setStep]=useState(0),[started,setStarted]=useState(staticMode),[paused,setPaused]=useState(false),[sound,setSound]=useState(false),[captions,setCaptions]=useState(true);const text=copy[locale];
- useEffect(()=>{if(!started||paused||staticMode)return;const timer=window.setInterval(()=>setStep(current=>{if(current>=5){window.clearInterval(timer);onComplete();return current}return current+1}),900);return()=>window.clearInterval(timer)},[onComplete,paused,started,staticMode]);
+ const [step,setStep]=useState(staticMode?7:0),[started,setStarted]=useState(staticMode),[paused,setPaused]=useState(false),[sound,setSound]=useState(false),[captions,setCaptions]=useState(true);const text=copy[locale],scene=introScenes[step];
+ useEffect(()=>{if(!started||paused||staticMode)return;const timer=window.setInterval(()=>setStep(current=>{if(current>=7){window.clearInterval(timer);window.setTimeout(onComplete,900);return current}return current+1}),1050);return()=>window.clearInterval(timer)},[onComplete,paused,started,staticMode]);
  const playSound=()=>{setSound(true);const AudioContextClass=window.AudioContext;if(!AudioContextClass)return;const ctx=new AudioContextClass();[220,277,330].forEach((frequency,index)=>{const oscillator=ctx.createOscillator(),gain=ctx.createGain();oscillator.frequency.value=frequency;gain.gain.setValueAtTime(.0001,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(.035,ctx.currentTime+.05+index*.12);gain.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+.9+index*.14);oscillator.connect(gain).connect(ctx.destination);oscillator.start(ctx.currentTime+index*.12);oscillator.stop(ctx.currentTime+1.2+index*.14)});};
  const start=(withSound:boolean)=>{setStarted(true);if(withSound)playSound()};
- return <div className={`birth birth-step-${step} ${started?"birth-started":""} ${staticMode?"birth-static":""}`} role="dialog" aria-modal="true" aria-label="OMNIRO birth sequence"><OmniroStageScene staticMode={staticMode||paused}/><button className="skip" onClick={onComplete}>{text.skip}</button><div className="birth-stage" data-step={step}><span className="birth-point"/><div className="birth-mark" aria-hidden="true">OMNIRO</div>{captions&&<p aria-live="polite">{text.birth[Math.min(2,Math.floor(step/2))]}</p>}<small role="status">{staticMode?"Static introduction. No motion or sound.":sound?"Symbolic tones playing. No voice or recorded audio.":started?paused?"Introduction paused.":"Silent introduction playing.":"Choose sound or silence. Sound never autoplays."}</small></div><div className="birth-controls" aria-label="Introduction controls">{!started&&<><button onClick={()=>start(true)}>Start with sound</button><button onClick={()=>start(false)}>Start silently</button></>}{started&&!staticMode&&<button onClick={()=>setPaused(value=>!value)}>{paused?"Resume":"Pause"}</button>}<button aria-pressed={!sound} onClick={()=>setSound(false)}>Mute</button><button aria-pressed={captions} onClick={()=>setCaptions(value=>!value)}>Captions {captions?"on":"off"}</button></div></div>
+ return <div className={`birth birth-step-${step} ${started?"birth-started":""} ${staticMode?"birth-static":""}`} role="dialog" aria-modal="true" aria-label="OMNIRO birth sequence" data-intro-scene={step+1}><OmniroStageScene staticMode={staticMode||paused} phase={step}/><button className="skip" onClick={onComplete}>{text.skip}</button><div className="birth-stage" data-step={step}><span className="birth-point"/><div className="birth-mark" aria-hidden="true">{step>=2?"OMNIRO":""}</div>{captions&&<><small className="birth-sequence-label">{String(step+1).padStart(2,"0")} · {scene[0]}</small><p aria-live="polite">{scene[1]}</p></>}<small role="status">{staticMode?"Static introduction. No motion or sound.":sound?"Symbolic tones playing. No voice or recorded audio.":started?paused?"Introduction paused.":"Silent introduction playing.":"Choose sound or silence. Sound never autoplays."}</small></div><div className="birth-progress" aria-hidden="true">{introScenes.map((_,index)=><i className={index<=step?"active":""} key={index}/>)}</div><div className="birth-controls" aria-label="Introduction controls">{!started&&<><button onClick={()=>start(true)}>Start with sound</button><button onClick={()=>start(false)}>Start silently</button></>}{started&&!staticMode&&<button onClick={()=>setPaused(value=>!value)}>{paused?"Resume":"Pause"}</button>}<button aria-pressed={!sound} onClick={()=>setSound(false)}>Mute</button><button aria-pressed={captions} onClick={()=>setCaptions(value=>!value)}>Captions {captions?"on":"off"}</button></div></div>
 }
 
 function OmniroPresence(){return <div className="public-omniro" role="img" aria-label="OMNIRO, the orchestrating intelligence"><span className="presence-orbit"/><span className="presence-core">O</span><small>OMNIRO · present, not autonomous</small></div>}
