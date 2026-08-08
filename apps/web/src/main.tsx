@@ -6,6 +6,7 @@ import "./style.css";
 import "./construction-assistant.css";
 import "./public-experience.css";
 import "./public-controls.css";
+import "./omniro-stage.css";
 
 const queryClient = new QueryClient();
 createRoot(document.getElementById("root")!).render(<StrictMode><QueryClientProvider client={queryClient}><App /></QueryClientProvider></StrictMode>);
