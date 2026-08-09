@@ -1,0 +1,2 @@
+const unavailable=["Source Evidence","Engineering Norm","Material","Quantity","Commercial Estimate"];
+export function OmniroCausalityTrace(){return <section className="oc-causality" aria-label="Estimate causality unavailable"><header><small>SPATIAL CAUSALITY CONTRACT</small><h2>Why is this estimate value here?</h2><span>UNAVAILABLE · NO STAGE 2B SOURCE CONNECTED</span></header><ol>{unavailable.map((label,index)=><li key={label}><i aria-hidden="true">{index===0?"⌗":index===4?"∑":"○"}</i><strong>{label}</strong><small>Not connected</small></li>)}</ol></section>}

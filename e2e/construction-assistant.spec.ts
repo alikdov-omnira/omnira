@@ -1,2 +1,18 @@
-import{expect,test}from"@playwright/test";
-test("OMNIRO analyses verified construction state and preserves human authority",async({page})=>{await page.goto("/#login");await page.getByLabel("Tenant").fill("demo");await page.getByLabel("Email").fill("admin@demo.odls");await page.getByLabel("Password").fill("DemoPassword!2026");await page.getByRole("button",{name:"Sign in"}).click();await page.getByRole("button",{name:"OMNIRO Command Center"}).click();await page.getByLabel("Text command").fill("Open project Demo Project");await page.getByRole("button",{name:"Interpret command"}).click();const panel=page.locator(".construction-assistant"),analyse=panel.getByRole("button",{name:"Analyse verified data"});await expect(panel.getByRole("heading",{name:"Construction Assistant"})).toBeVisible();await expect(panel).toContainText("never changes project");await analyse.click();await expect(analyse).toBeEnabled();await expect(panel.getByRole("heading",{name:"Recommended next actions"})).toBeVisible();await expect(panel).toContainText("Current risks");await expect(panel).toContainText("No verified forecast has been ingested. Weather risks are not inferred.");await panel.getByText("Authoritative source availability").click();await expect(panel).toContainText("equipment Assignments: unavailable — no facts inferred")});
+import { expect, test } from "@playwright/test";
+
+test("OMNIRO explains verified construction state without fabricating execution", async ({ page }) => {
+  await page.goto("/#login");
+  await page.getByLabel("Tenant").fill("demo");
+  await page.getByLabel("Email").fill("admin@demo.odls");
+  await page.getByLabel("Password").fill("DemoPassword!2026");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.getByRole("button", { name: "OMNIRO Command Center" }).click();
+  await page.locator(".oc-node").filter({ hasText: "Room Scanner" }).click();
+  await page.getByRole("button", { name: "◎" }).click();
+  const explanation = page.getByLabel("OMNIRO system explanation");
+  await expect(explanation).toHaveClass(/is-open/);
+  await expect(explanation).toContainText("READ-ONLY EXPLANATION");
+  await expect(explanation).toContainText(/Authoritative Room Scan record/);
+  await expect(page.locator(".oc-node.is-highlighted")).toHaveCount(2);
+  await expect(explanation.getByRole("button", { name: /run|execute|approve/i })).toHaveCount(0);
+});

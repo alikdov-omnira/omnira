@@ -1,0 +1,5 @@
+import type{OmniroLifecycle}from"./omniro-module-contract.js";import type{OmniroRoute}from"./omniro-command-center-route.js";
+export type OmniroInteractionState={route:OmniroRoute;phase:OmniroLifecycle;selectedFlowId?:string;explanationOpen:boolean};
+export type OmniroInteractionEvent={type:"ROUTE";route:OmniroRoute}|{type:"APPROACH";moduleId:string}|{type:"SELECT_FLOW";flowId:string}|{type:"EXPLAIN"}|{type:"CLOSE_EXPLANATION"};
+export const initialInteraction=(route:OmniroRoute):OmniroInteractionState=>({route,phase:route.level==="operational"?"IDLE":"FOCUS",explanationOpen:false});
+export const reduceInteraction=(state:OmniroInteractionState,event:OmniroInteractionEvent):OmniroInteractionState=>event.type==="ROUTE"?{...state,route:event.route,phase:event.route.level==="workspace"?"RECEIVE":event.route.level==="focus"?"FOCUS":"IDLE"}:event.type==="APPROACH"?{...state,phase:"APPROACH",route:{...state.route,moduleId:event.moduleId}}:event.type==="SELECT_FLOW"?{...state,selectedFlowId:event.flowId,phase:"OUTPUT"}:event.type==="EXPLAIN"?{...state,explanationOpen:true,phase:"FOCUS"}:{...state,explanationOpen:false};

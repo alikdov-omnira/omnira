@@ -1,0 +1,3 @@
+import{ProjectWorkspace,type WorkspaceTab}from"./construction-ui.js";import type{OmniroWorkspaceProps}from"./omniro-module-contract.js";
+const tabs:Record<string,WorkspaceTab>={"room-scanner":"room-scan","technical-assignment":"technical-assignment","design-project":"design-project"};
+export default function OmniroWorkspaceContent({session,projectId,runtime}:OmniroWorkspaceProps){const tab=tabs[runtime.moduleId]??"summary";return <ProjectWorkspace session={session} projectId={projectId} initialTab={tab} navigate={(page,id,next)=>{if(page==="project-workspace"&&id)location.hash=`project/${id}/${next??tab}`;else location.hash=page==="construction-projects"?"projects":"overview"}}/>}
