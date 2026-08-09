@@ -4,6 +4,8 @@
 Правило продвижения: следующий этап начинается только после точной команды `APPROVED STAGE X`.  
 Правило публикации: до точной команды `APPROVED FOR PRODUCTION` запрещены merge и deploy нового интерфейса в production.
 
+Обязательная политика production delivery: [OMNIRO Production Delivery Policy](./omniro-production-delivery-policy.md). Её необходимо проверить перед любыми действиями по merge, push или deployment.
+
 ## Главный принцип
 
 > **Рекламный экран OMNIRO и рабочая система OMNIRO — это один интерфейс.**
