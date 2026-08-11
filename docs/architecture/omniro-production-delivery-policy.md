@@ -20,7 +20,7 @@ APPROVED STAGE X
 and
 
 ```text
-APPROVED FOR PRODUCTION
+APPROVED FOR DEPLOYMENT
 ```
 
 They must never be treated as equivalent.
@@ -47,13 +47,13 @@ They must never be treated as equivalent.
 
 ## 3. Only exact production authorization
 
-Only the exact command:
+Only the exact separate command:
 
 ```text
-APPROVED FOR PRODUCTION
+APPROVED FOR DEPLOYMENT
 ```
 
-authorizes the production-delivery sequence.
+authorizes any preview, staging, or production deployment sequence. Stage approval and baseline commit/tag never authorize website deployment.
 
 Never interpret any of the following as production authorization:
 
@@ -72,7 +72,7 @@ If there is ambiguity, stop and ask for the exact production authorization.
 
 ## 4. Production delivery sequence
 
-After the exact command `APPROVED FOR PRODUCTION`:
+After the exact command `APPROVED FOR DEPLOYMENT`:
 
 1. Identify the exact approved baseline or tag being promoted.
 2. Confirm the working tree is clean.
@@ -145,7 +145,7 @@ stage commit/tag
 ↓
 STOP
 ↓
-APPROVED FOR PRODUCTION
+APPROVED FOR DEPLOYMENT
 ↓
 final production regression
 ↓

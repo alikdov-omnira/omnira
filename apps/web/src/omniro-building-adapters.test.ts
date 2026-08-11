@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lifecycleFor, scannerApproval, technologyAdapter, technologyApproval, unavailableAdapter, workScopeAdapter, workScopeApproval } from "./omniro-building-adapters.js";
+import { engineeringNormAdapter, engineeringNormApproval, lifecycleFor, scannerApproval, technologyAdapter, technologyApproval, unavailableAdapter, workScopeAdapter, workScopeApproval } from "./omniro-building-adapters.js";
 import type { OmniroModuleRuntimeState } from "./omniro-module-contract.js";
 
 const approvalState: OmniroModuleRuntimeState = {
@@ -51,5 +51,14 @@ describe("OMNIRO building adapters", () => {
     const technology=technologyAdapter.resolve({projectId:"p",session,sources:sources as never}),scope=workScopeAdapter.resolve({projectId:"p",session,sources:sources as never});
     expect(technology).toMatchObject({truth:"REAL",lifecycle:"APPROVAL_REQUIRED"});expect(scope).toMatchObject({truth:"REAL",lifecycle:"APPROVAL_REQUIRED"});
     expect(technologyApproval.detect(technology,session)?.consequence).toMatch(/Work Scope reference/);expect(workScopeApproval.detect(scope,session)?.consequence).toMatch(/immutable approved snapshot/);
+  });
+
+  it("maps Engineering Norm readiness to its own human authority boundary",()=>{
+    const session={accessToken:"x",refreshToken:"x",user:{id:"u",email:"u@example.test",displayName:"Reviewer"},permissions:["engineering_norms.read","engineering_norms.approve"]};
+    const sources={project:{id:"p"},scans:[],assignments:[],designs:[],technologies:[],workScopes:[],sourceFailures:[],engineeringNorms:[{id:"n",code:"N-1",title:"Painting norm",countryCode:"PL",discipline:"finishes",workType:"painting",revisionId:"nr",revisionNumber:1,status:"ready_for_approval",authoritative:false,version:3}]};
+    const norm=engineeringNormAdapter.resolve({projectId:"p",session,sources:sources as never});
+    expect(norm).toMatchObject({truth:"REAL",lifecycle:"APPROVAL_REQUIRED"});
+    expect(engineeringNormApproval.detect(norm,session)).toMatchObject({permission:"engineering_norms.approve",downstreamModuleId:"material-consumption"});
+    expect(engineeringNormApproval.detect(norm,session)?.consequence).toMatch(/Technology and Work Scope approvals are not changed/);
   });
 });

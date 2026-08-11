@@ -2,7 +2,7 @@
 
 Статус: рабочий конституционный план.  
 Правило продвижения: следующий этап начинается только после точной команды `APPROVED STAGE X`.  
-Правило публикации: до точной команды `APPROVED FOR PRODUCTION` запрещены merge и deploy нового интерфейса в production.
+Правило публикации: stage approval и baseline commit/tag никогда не разрешают публикацию. До отдельной точной команды `APPROVED FOR DEPLOYMENT` запрещён любой preview, staging или production deploy нового интерфейса.
 
 Обязательная политика production delivery: [OMNIRO Production Delivery Policy](./omniro-production-delivery-policy.md). Её необходимо проверить перед любыми действиями по merge, push или deployment.
 
@@ -16,7 +16,7 @@
 
 ## Этап 0. Ничего не публиковать
 
-Текущий production не является эталоном дизайна. Codex работает только в отдельной ветке. До команды `APPROVED FOR PRODUCTION` новый интерфейс нельзя merge или deploy в production.
+Текущий production не является эталоном дизайна. Codex работает только в отдельной ветке. До отдельной команды `APPROVED FOR DEPLOYMENT` новый интерфейс нельзя deploy в preview, staging или production.
 
 ## Этап 1. Утвердить визуальный язык
 
