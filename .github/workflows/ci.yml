@@ -6,6 +6,22 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: omnira_ci
+          POSTGRES_USER: omnira_ci
+          POSTGRES_PASSWORD: omnira_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U omnira_ci -d omnira_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://omnira_ci:omnira_ci@127.0.0.1:5432/omnira_ci
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -13,6 +29,8 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
+      - run: pnpm run db:migrate
+      - run: pnpm run db:seed
       - run: pnpm run typecheck
       - run: pnpm test
       - run: pnpm run build
