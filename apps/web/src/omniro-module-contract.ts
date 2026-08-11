@@ -4,7 +4,7 @@ import type{Session}from"./api.js";
 export type OmniroTruth="REAL"|"DERIVED"|"PARTIAL"|"UNAVAILABLE";
 export type OmniroLifecycle="IDLE"|"APPROACH"|"FOCUS"|"RECEIVE"|"PROCESS"|"OUTPUT"|"WAIT"|"APPROVAL_REQUIRED"|"APPROVED"|"COMPLETE"|"CONFLICT"|"BLOCKED";
 export type OmniroModuleKind="nucleus"|"authority"|"context";
-export type OmniroMicroAnimationKey="scanner-evidence-sweep"|"identity-assembly"|"intent-review"|"design-formation"|"dormant";
+export type OmniroMicroAnimationKey="scanner-evidence-sweep"|"identity-assembly"|"intent-review"|"design-formation"|"technology-reference-stabilize"|"work-scope-convergence"|"dormant";
 export type OmniroEvidenceRef={entityType:string;entityId:string;version?:number;label:string;fingerprint?:string};
 export type OmniroPortDefinition={id:string;payloadType:string;label:string};
 export type OmniroVisualIdentity={glyph:string;geometry:"core"|"scanner"|"identity"|"layers"|"decisions"|"scope"|"technology"|"norms"|"consumption"|"pricing"|"estimate"|"context";accent:"cyan"|"green"|"amber"|"violet"|"silver"};

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lifecycleFor, scannerApproval, unavailableAdapter } from "./omniro-building-adapters.js";
+import { lifecycleFor, scannerApproval, technologyAdapter, technologyApproval, unavailableAdapter, workScopeAdapter, workScopeApproval } from "./omniro-building-adapters.js";
 import type { OmniroModuleRuntimeState } from "./omniro-module-contract.js";
 
 const approvalState: OmniroModuleRuntimeState = {
@@ -43,5 +43,13 @@ describe("OMNIRO building adapters", () => {
       sources: {},
     });
     expect(state).toMatchObject({ truth: "UNAVAILABLE", availability: "unavailable", status: "unavailable" });
+  });
+
+  it("maps Technology review and Work Scope readiness to independent authority gates",()=>{
+    const session={accessToken:"x",refreshToken:"x",user:{id:"u",email:"u@example.test",displayName:"Reviewer"},permissions:["work_scopes.read","work_scopes.approve"]};
+    const sources={project:{id:"p"},scans:[],assignments:[],designs:[],sourceFailures:[],technologies:[{id:"t",code:"PAINT",name:"Paint",version:1,versionId:"tv",versionNumber:3,status:"review_required",executionMethod:"spray",requiredLayers:[{name:"primer",order:1}],dryingStages:[],qualityRules:["opacity"],inspectionRequirements:["finish"],safetyNotes:[],technologyVersion:4}],workScopes:[{id:"w",projectId:"p",code:"WS",name:"Scope",revisionId:"wr",revisionNumber:2,status:"ready_for_approval",version:5,items:[],mappings:[],sources:[]}]};
+    const technology=technologyAdapter.resolve({projectId:"p",session,sources:sources as never}),scope=workScopeAdapter.resolve({projectId:"p",session,sources:sources as never});
+    expect(technology).toMatchObject({truth:"REAL",lifecycle:"APPROVAL_REQUIRED"});expect(scope).toMatchObject({truth:"REAL",lifecycle:"APPROVAL_REQUIRED"});
+    expect(technologyApproval.detect(technology,session)?.consequence).toMatch(/Work Scope reference/);expect(workScopeApproval.detect(scope,session)?.consequence).toMatch(/immutable approved snapshot/);
   });
 });
