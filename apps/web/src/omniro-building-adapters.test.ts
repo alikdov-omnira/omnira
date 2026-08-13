@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { engineeringNormAdapter, engineeringNormApproval, lifecycleFor, scannerApproval, technologyAdapter, technologyApproval, unavailableAdapter, workScopeAdapter, workScopeApproval } from "./omniro-building-adapters.js";
+import { engineeringNormAdapter, engineeringNormApproval, lifecycleFor, materialConsumptionAdapter, materialConsumptionApproval, scannerApproval, technologyAdapter, technologyApproval, unavailableAdapter, workScopeAdapter, workScopeApproval } from "./omniro-building-adapters.js";
 import type { OmniroModuleRuntimeState } from "./omniro-module-contract.js";
 
 const approvalState: OmniroModuleRuntimeState = {
@@ -60,5 +60,22 @@ describe("OMNIRO building adapters", () => {
     expect(norm).toMatchObject({truth:"REAL",lifecycle:"APPROVAL_REQUIRED"});
     expect(engineeringNormApproval.detect(norm,session)).toMatchObject({permission:"engineering_norms.approve",downstreamModuleId:"material-consumption"});
     expect(engineeringNormApproval.detect(norm,session)?.consequence).toMatch(/Technology and Work Scope approvals are not changed/);
+  });
+
+  it("maps real Material Consumption data and its independent approval authority",()=>{
+    const session={accessToken:"x",refreshToken:"x",user:{id:"u",email:"u@example.test",displayName:"Reviewer"},permissions:["material_consumption.read","material_consumption.approve"]};
+    const consumption={id:"c",projectId:"p",code:"MC",title:"Demand",revisionId:"cr",revisionNumber:1,status:"ready_for_approval",version:3,workScopeSnapshotId:"ws",normSnapshotId:"ns",knowledgeVersionId:"kv",technologyVersionId:"tv",workItemId:"wi",evaluatedParameters:{},workQuantity:20,workQuantityUnit:"m2",lines:[]};
+    const sources={project:{id:"p"},scans:[],assignments:[],designs:[],technologies:[],workScopes:[],engineeringNorms:[],materialConsumptions:[consumption],sourceFailures:[]};
+    const state=materialConsumptionAdapter.resolve({projectId:"p",session,sources:sources as never});
+    expect(state).toMatchObject({truth:"REAL",availability:"available",lifecycle:"APPROVAL_REQUIRED",record:{entityId:"c",version:3}});
+    expect(state.evidence.map(x=>x.entityType)).toEqual(expect.arrayContaining(["approved-work-scope-snapshot","approved-engineering-norm-snapshot"]));
+    expect(materialConsumptionApproval.detect(state,session)).toMatchObject({permitted:true,permission:"material_consumption.approve",openWorkspaceId:"material-consumption"});
+  });
+
+  it("keeps Material Consumption truthfully available when empty and partial on API failure",()=>{
+    const session={accessToken:"x",refreshToken:"x",user:{id:"u",email:"u@example.test",displayName:"Reader"},permissions:["material_consumption.read"]},base={project:{id:"p"},scans:[],assignments:[],designs:[],technologies:[],workScopes:[],engineeringNorms:[],materialConsumptions:[]};
+    expect(materialConsumptionAdapter.resolve({projectId:"p",session,sources:{...base,sourceFailures:[]}as never})).toMatchObject({truth:"REAL",availability:"available",status:"not_started"});
+    expect(materialConsumptionAdapter.resolve({projectId:"p",session,sources:{...base,sourceFailures:["material-consumption"]}as never})).toMatchObject({truth:"PARTIAL",availability:"partial"});
+    expect(materialConsumptionAdapter.resolve({projectId:"p",session:{...session,permissions:[]},sources:{...base,sourceFailures:[]}as never})).toMatchObject({truth:"UNAVAILABLE",availability:"unavailable"});
   });
 });
