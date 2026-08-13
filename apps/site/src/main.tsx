@@ -1,4 +1,4 @@
-import { StrictMode, type ReactNode } from "react";
+import { StrictMode, useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
 
@@ -25,11 +25,15 @@ const buildingCapabilities = [
 ];
 
 const agents = [
-  ["Legal AI", "Contracts & claims", "legal"], ["Finance AI", "Budget & cash flow", "finance"],
-  ["Estimator AI", "Costs & takeoff", "estimator"], ["Project AI", "Schedule & progress", "project"],
-  ["Procurement AI", "Materials & suppliers", "procurement"], ["Risk AI", "Risk & compliance", "risk"],
-  ["Document AI", "OCR & evidence", "document"], ["Analytics AI", "Signals & insights", "analytics"],
-];
+  ["Legal AI", "Contracts & Compliance", "legal", "Architecture", ["Contract analysis", "Claims & disputes", "Risk & compliance", "Legal alerts"]],
+  ["Finance AI", "Budget & Cash Flow", "finance", "In Development", ["Budget control", "Cash flow", "Cost tracking", "Financial reporting"]],
+  ["Estimator AI", "Costs & Takeoff", "estimator", "In Development", ["Quantity takeoff", "Cost estimation", "BOQ preparation", "Margin control"]],
+  ["Project AI", "Schedule & Progress", "project", "Architecture", ["Project planning", "Progress tracking", "Schedule control", "Issue management"]],
+  ["Procurement AI", "Materials & Suppliers", "procurement", "Planned", ["Material planning", "Supplier coordination", "Purchase control", "Delivery tracking"]],
+  ["Risk AI", "Risks & Delays", "risk", "Planned", ["Risk identification", "Delay analysis", "Impact assessment", "Evidence-linked reporting"]],
+  ["Document AI", "OCR & Evidence", "document", "In Development", ["OCR & data capture", "Document classification", "Search", "Evidence linking"]],
+  ["Analytics AI", "Signals & Insights", "analytics", "Planned", ["KPI monitoring", "Trend detection", "Forecasting", "Capacity analysis"]],
+] as const;
 const decisionChain = [
   ["Reality", "◉"], ["Scanner", "⌗"], ["Work Scope", "▦"], ["Technology", "✣"], ["Engineering Norms", "◇"],
   ["Materials", "⬡"], ["Pricing", "◒"], ["Estimate", "▤"], ["Execution", "↗"], ["Analytics", "⌁"],
@@ -68,8 +72,8 @@ function Pill({ children, tone = "violet" }: { children: ReactNode; tone?: strin
   return <span className={`pill pill-${tone}`}>{children}</span>;
 }
 
-function Avatar({ kind, label }: { kind: string; label: string }) {
-  return <div className={`ai-avatar avatar-${kind}`} role="img" aria-label={`${label} avatar placeholder`}><span className="avatar-head" /><span className="avatar-body" /><i className="avatar-badge">AI</i></div>;
+function Avatar({ kind, label, avatarUrl, showBadge = true }: { kind: string; label: string; avatarUrl?: string; showBadge?: boolean }) {
+  return <div className={`ai-avatar avatar-${kind}`} role="img" aria-label={`${label} portrait`}>{avatarUrl ? <img src={avatarUrl} alt="" /> : <><span className="avatar-head" /><span className="avatar-body" /></>}{showBadge && <i className="avatar-badge">AI</i>}</div>;
 }
 
 function SectionIntro({ eyebrow, title, copy }: { eyebrow: string; title: string; copy?: string }) {
@@ -109,13 +113,15 @@ function SystemVisual({ className = "" }: { className?: string }) {
       <div className="data-pulse pulse-b" aria-hidden="true" />
       <div className="data-pulse pulse-c" aria-hidden="true" />
       <div className="hero-agents" aria-label="Specialized AI agent ecosystem">
-        {agents.slice(0, 4).map(([name,,kind]) => <div className="hero-agent" key={name}><Avatar kind={kind} label={name} /><span><strong>{name}</strong><small>Specialized intelligence</small></span></div>)}
+        {agents.slice(0, 4).map(([name,,kind]) => <div className="hero-agent" key={name}><Avatar kind={kind} label={name} avatarUrl={`/agents/${kind}-ai.webp`} /><span><strong>{name}</strong><small>Specialized intelligence</small></span></div>)}
       </div>
+      <div className="hero-control-panels" aria-label="Command center presentation states"><span><small>PROJECTS</small><strong>Connected</strong></span><span><small>FINANCIAL CONTROL</small><strong>Governed</strong></span><span><small>RISK SIGNALS</small><strong>Evidence-linked</strong></span></div>
     </div>
   );
 }
 
 function Header() {
+  const [menuOpen, setMenuOpen] = useState(false);
   const links = [
     ["Platform", "#platform"], ["OMNIRO Building", "#building"], ["Technology", "#technology"],
     ["Investors", "#investors"], ["Roadmap", "#roadmap"], ["Contact", "#contact"],
@@ -131,13 +137,13 @@ function Header() {
           <label className="language"><span className="sr-only">Language</span><select defaultValue="EN" aria-label="Language"><option>EN</option><option>PL</option><option>NL</option><option>RU</option></select></label>
           <a className="button button-small button-primary" href="#platform">Explore OMNIRO <Arrow /></a>
         </div>
-        <details className="mobile-menu">
-          <summary aria-label="Open navigation"><span /><span /></summary>
-          <nav aria-label="Mobile navigation">
+        <div className={`mobile-menu ${menuOpen ? "is-open" : ""}`}>
+          <button type="button" aria-label="Open navigation" aria-expanded={menuOpen} aria-controls="mobile-navigation" onClick={() => setMenuOpen(open => !open)}><span /><span /></button>
+          {menuOpen && <nav id="mobile-navigation" aria-label="Mobile navigation">
             {links.map(([label, href]) => <a key={label} href={href}>{label}</a>)}
             <div className="mobile-languages" aria-label="Languages">EN <span>/</span> PL <span>/</span> NL <span>/</span> RU</div>
-          </nav>
-        </details>
+          </nav>}
+        </div>
       </div>
     </header>
   );
@@ -236,7 +242,7 @@ function App() {
               <div className="command-core"><span className="command-ring" /><b>O</b><strong>OMNIRO CORE</strong><small>COORDINATION LAYER</small></div>
               {agents.slice(0,6).map(([name, functionText, kind], index) => (
                 <div className={`agent agent-${index + 1}`} key={name} style={{ "--agent-index": index } as React.CSSProperties}>
-                  <Avatar kind={kind} label={name} /><span><strong>{name}</strong><small>{functionText}</small></span>
+                  <Avatar kind={kind} label={name} avatarUrl={`/agents/${kind}-ai.webp`} /><span><strong>{name}</strong><small>{functionText}</small></span>
                 </div>
               ))}
               <div className="ops-panel ops-projects"><small>ACTIVE PROJECTS</small><strong>Connected context</strong><span><i style={{width:'72%'}} /></span></div>
@@ -247,8 +253,9 @@ function App() {
               <div className="ops-panel ops-health"><small>SYSTEM HEALTH</small><strong>Architecture online</strong><em>● Modules connected</em></div>
               <p className="concept-label"><span />PRESENTATION UI · NO LIVE COMPANY DATA</p>
             </div>
-            <div className="agent-ecosystem reveal" aria-label="AI agents ecosystem">
-              {agents.map(([name, functionText, kind]) => <article className={`agent-card accent-${kind}`} key={name} tabIndex={0}><Avatar kind={kind} label={name} /><div><h3>{name}</h3><p>{functionText}</p></div><span>Specialized agent</span></article>)}
+            <div className="agents-heading"><div><p className="eyebrow"><span />OMNIRO AI AGENTS</p><h3>Specialized intelligence. One coordinated system.</h3></div><Pill tone="violet">CONCEPT ARCHITECTURE</Pill></div>
+            <div className="agent-ecosystem reveal" aria-label="OMNIRO AI Agents ecosystem">
+              {agents.map(([name, functionText, kind, status, capabilities]) => <article className={`agent-card accent-${kind}`} key={name} tabIndex={0}><div className="agent-portrait"><Avatar kind={kind} label={name} avatarUrl={`/agents/${kind}-ai.webp`} /><span className="agent-status">{status}</span></div><div className="agent-card-content"><span className="agent-role">SPECIALIZED AGENT</span><h3>{name}</h3><p>{functionText}</p><ul>{capabilities.map(capability=><li key={capability}>{capability}</li>)}</ul></div></article>)}
             </div>
           </div>
         </section>
@@ -273,7 +280,7 @@ function App() {
             <div className="role-grid">
               {roles.map(([title, copy, view, features], index) => (
                 <article className="role-card reveal" key={title}>
-                  <div className="role-visual"><Avatar kind={['legal','estimator','project','document'][index]} label={title as string} /><span>0{index + 1}</span></div>
+                  <div className="role-visual"><Avatar kind={['legal','estimator','project','document'][index]} label={title as string} avatarUrl={`/agents/${['finance','estimator','project','document'][index]}-ai.webp`} showBadge={false} /><span>0{index + 1}</span></div>
                   <small>ROLE 0{index + 1}</small><h3>{title}</h3><p>{copy}</p><strong>{view}<Arrow /></strong>
                   <ul>{features.map(feature=><li key={feature}>{feature}</li>)}</ul>
                 </article>
@@ -294,6 +301,7 @@ function App() {
                 {[[143,77],[224,91],[285,116],[349,95],[390,147],[307,181],[206,169],[121,139]].map(([cx,cy],i)=><circle key={i} cx={cx} cy={cy} r="5" />)}
                 <path className="network-line" d="M143 77 224 91 285 116 349 95 390 147 307 181 206 169 121 139 143 77M224 91 206 169M285 116 307 181" />
               </svg>
+              <div className="investor-chain" aria-label="OMNIRO expansion architecture"><span>Construction</span><i>↓</i><span>Operational Data</span><i>↓</i><span>AI Intelligence</span><i>↓</i><span>Commercial Platform</span><i>↓</i><span>Business OS</span></div>
               <div className="thesis-grid">
                 {['Construction-first strategy','Operational foundation','Modular architecture','European market focus','SaaS model potential','Multi-industry vision'].map((item, index) => <div key={item}><span>0{index + 1}</span><strong>{item}</strong></div>)}
               </div>
