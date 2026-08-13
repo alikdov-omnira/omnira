@@ -3,12 +3,12 @@ import { createRoot } from "react-dom/client";
 import "./styles.css";
 
 const modules = [
-  ["Projects", "Live delivery context", "01"],
-  ["Finance", "Connected financial truth", "02"],
-  ["Documents", "Knowledge in motion", "03"],
-  ["People", "Roles, decisions, authority", "04"],
-  ["Analytics", "Signals made actionable", "05"],
-  ["Automation", "Controlled intelligent workflows", "06"],
+  ["Projects", "Live delivery context", "01", "⌂", "CONNECTED"],
+  ["Finance", "Connected financial truth", "02", "◒", "GOVERNED"],
+  ["Documents", "Knowledge in motion", "03", "▤", "TRACEABLE"],
+  ["People", "Roles, decisions, authority", "04", "◉", "ALIGNED"],
+  ["Analytics", "Signals made actionable", "05", "⌁", "EXPLAINED"],
+  ["Automation", "Controlled intelligent workflows", "06", "✦", "ORCHESTRATED"],
 ];
 
 const buildingCapabilities = [
@@ -24,14 +24,22 @@ const buildingCapabilities = [
   ["Risk Intelligence", "Planned capability", "planned"],
 ];
 
-const agents = ["Estimator", "Legal", "Finance", "Project", "Procurement", "Analytics", "Risk", "Communication", "Document AI"];
-const decisionChain = ["Reality", "Scan", "Work Scope", "Technology", "Engineering Rules", "Materials", "Pricing", "Estimate", "Execution", "Analytics"];
-const roles = [
-  ["Owner", "Portfolio truth, financial control and decisions that need authority.", "Strategic view"],
-  ["Foreman", "Scope, progress, evidence and the next operational action on site.", "Operational view"],
-  ["Worker", "Clear assignments, verified context and less administrative noise.", "Action view"],
-  ["Client", "Transparent progress, documents and approvals in one shared context.", "Collaboration view"],
+const agents = [
+  ["Legal AI", "Contracts & claims", "legal"], ["Finance AI", "Budget & cash flow", "finance"],
+  ["Estimator AI", "Costs & takeoff", "estimator"], ["Project AI", "Schedule & progress", "project"],
+  ["Procurement AI", "Materials & suppliers", "procurement"], ["Risk AI", "Risk & compliance", "risk"],
+  ["Document AI", "OCR & evidence", "document"], ["Analytics AI", "Signals & insights", "analytics"],
 ];
+const decisionChain = [
+  ["Reality", "◉"], ["Scanner", "⌗"], ["Work Scope", "▦"], ["Technology", "✣"], ["Engineering Norms", "◇"],
+  ["Materials", "⬡"], ["Pricing", "◒"], ["Estimate", "▤"], ["Execution", "↗"], ["Analytics", "⌁"],
+];
+const roles = [
+  ["Owner / Director", "Portfolio truth, financial control and decisions that need authority.", "Strategic view", ["Portfolio", "Finance", "Analytics", "Decisions", "Growth"]],
+  ["Foreman / Manager", "Scope, progress, evidence and the next operational action on site.", "Operational view", ["Projects", "Team", "Progress", "Problems"]],
+  ["Worker", "Clear assignments, verified context and less administrative noise.", "Action view", ["Tasks", "Reports", "Photos", "Voice"]],
+  ["Client", "Transparent progress, documents and approvals in one shared context.", "Collaboration view", ["Progress", "Photos", "Documents", "Approvals"]],
+] as const;
 
 const roadmap = [
   ["Foundation", "Built", "built"],
@@ -58,6 +66,10 @@ function Arrow() {
 
 function Pill({ children, tone = "violet" }: { children: ReactNode; tone?: string }) {
   return <span className={`pill pill-${tone}`}>{children}</span>;
+}
+
+function Avatar({ kind, label }: { kind: string; label: string }) {
+  return <div className={`ai-avatar avatar-${kind}`} role="img" aria-label={`${label} avatar placeholder`}><span className="avatar-head" /><span className="avatar-body" /><i className="avatar-badge">AI</i></div>;
 }
 
 function SectionIntro({ eyebrow, title, copy }: { eyebrow: string; title: string; copy?: string }) {
@@ -96,6 +108,9 @@ function SystemVisual({ className = "" }: { className?: string }) {
       <div className="data-pulse pulse-a" aria-hidden="true" />
       <div className="data-pulse pulse-b" aria-hidden="true" />
       <div className="data-pulse pulse-c" aria-hidden="true" />
+      <div className="hero-agents" aria-label="Specialized AI agent ecosystem">
+        {agents.slice(0, 4).map(([name,,kind]) => <div className="hero-agent" key={name}><Avatar kind={kind} label={name} /><span><strong>{name}</strong><small>Specialized intelligence</small></span></div>)}
+      </div>
     </div>
   );
 }
@@ -174,11 +189,12 @@ function App() {
           <div className="section-grid">
             <SectionIntro eyebrow="THE PLATFORM" title="One company. One source of truth. One intelligent system." copy="A shared operational layer where every module understands the same business context." />
             <div className="module-grid">
-              {modules.map(([title, copy, number]) => (
+              {modules.map(([title, copy, number, icon, signal]) => (
                 <article className="module-card reveal" key={title} tabIndex={0}>
                   <div className="module-top"><span>{number}</span><i aria-hidden="true" /></div>
+                  <div className="module-icon" aria-hidden="true">{icon}</div>
                   <h3>{title}</h3><p>{copy}</p>
-                  <div className="module-line"><span /></div>
+                  <div className="module-data"><span>{signal}</span><i><b /></i></div>
                 </article>
               ))}
             </div>
@@ -206,6 +222,7 @@ function App() {
                   </div>
                 ))}
               </div>
+              <div className="foundation-flow" aria-label="Built operational foundation"><span>Scanner</span><i>→</i><span>Work Scope</span><i>→</i><span>Technology</span><i>→</i><span>Engineering Norms</span></div>
             </div>
           </div>
         </section>
@@ -213,15 +230,25 @@ function App() {
         <section id="technology" className="command section" aria-labelledby="command-title">
           <div className="section-grid">
             <SectionIntro eyebrow="AI COMMAND CENTER" title="Intelligence coordinated, not fragmented." copy="A governed orchestration layer designed to coordinate specialized intelligence around real business state — never to invent authority." />
-            <div className="command-map glass-panel reveal" aria-label="Concept map of future specialized AI agents coordinated by OMNIRO Core">
+            <div className="command-map glass-panel reveal" aria-label="Presentation preview of specialized AI agents coordinated by OMNIRO Core">
+              <div className="command-toolbar"><div><span className="live-indicator" />AI COMMAND CENTER <small>CONCEPT PREVIEW</small></div><span>System architecture online</span></div>
               <div className="command-grid" aria-hidden="true" />
               <div className="command-core"><span className="command-ring" /><b>O</b><strong>OMNIRO CORE</strong><small>COORDINATION LAYER</small></div>
-              {agents.map((agent, index) => (
-                <div className={`agent agent-${index + 1}`} key={agent} style={{ "--agent-index": index } as React.CSSProperties}>
-                  <span>{String(index + 1).padStart(2, '0')}</span><strong>{agent}</strong><small>Specialized AI agent</small>
+              {agents.slice(0,6).map(([name, functionText, kind], index) => (
+                <div className={`agent agent-${index + 1}`} key={name} style={{ "--agent-index": index } as React.CSSProperties}>
+                  <Avatar kind={kind} label={name} /><span><strong>{name}</strong><small>{functionText}</small></span>
                 </div>
               ))}
-              <p className="concept-label"><span />FUTURE AGENT ARCHITECTURE</p>
+              <div className="ops-panel ops-projects"><small>ACTIVE PROJECTS</small><strong>Connected context</strong><span><i style={{width:'72%'}} /></span></div>
+              <div className="ops-panel ops-finance"><small>FINANCIAL CONTROL</small><strong>Governed inputs</strong><span><i style={{width:'58%'}} /></span></div>
+              <div className="ops-panel ops-insights"><small>AI INSIGHTS</small><strong>Evidence-linked</strong><em>Concept state</em></div>
+              <div className="ops-panel ops-deadlines"><small>UPCOMING DEADLINES</small><strong>Authority aware</strong><em>No live data</em></div>
+              <div className="ops-panel ops-risk"><small>RISKS & DELAYS</small><strong>Review required</strong><em>Presentation UI</em></div>
+              <div className="ops-panel ops-health"><small>SYSTEM HEALTH</small><strong>Architecture online</strong><em>● Modules connected</em></div>
+              <p className="concept-label"><span />PRESENTATION UI · NO LIVE COMPANY DATA</p>
+            </div>
+            <div className="agent-ecosystem reveal" aria-label="AI agents ecosystem">
+              {agents.map(([name, functionText, kind]) => <article className={`agent-card accent-${kind}`} key={name} tabIndex={0}><Avatar kind={kind} label={name} /><div><h3>{name}</h3><p>{functionText}</p></div><span>Specialized agent</span></article>)}
             </div>
           </div>
         </section>
@@ -230,9 +257,9 @@ function App() {
           <div className="section-grid">
             <SectionIntro eyebrow="FROM REALITY TO DECISION" title="One continuous intelligence chain." copy="Every decision can trace its origin — from physical evidence to engineering context, commercial logic and operational learning." />
             <div className="decision-flow reveal" aria-label="Reality to analytics decision chain">
-              {decisionChain.map((item, index) => (
+              {decisionChain.map(([item, icon], index) => (
                 <div className="decision-step" key={item}>
-                  <span>{String(index + 1).padStart(2, '0')}</span><strong>{item}</strong>
+                  <span>{String(index + 1).padStart(2, '0')}</span><b aria-hidden="true">{icon}</b><strong>{item}</strong>
                   {index < decisionChain.length - 1 && <i aria-hidden="true"><b /></i>}
                 </div>
               ))}
@@ -244,10 +271,11 @@ function App() {
           <div className="section-grid">
             <SectionIntro eyebrow="FOR EVERY ROLE" title="Different responsibilities. One shared reality." copy="Each person sees what matters to their role, while every action remains connected to the same governed system." />
             <div className="role-grid">
-              {roles.map(([title, copy, view], index) => (
+              {roles.map(([title, copy, view, features], index) => (
                 <article className="role-card reveal" key={title}>
-                  <div className="role-avatar" aria-hidden="true"><span>{title[0]}</span><i /></div>
+                  <div className="role-visual"><Avatar kind={['legal','estimator','project','document'][index]} label={title as string} /><span>0{index + 1}</span></div>
                   <small>ROLE 0{index + 1}</small><h3>{title}</h3><p>{copy}</p><strong>{view}<Arrow /></strong>
+                  <ul>{features.map(feature=><li key={feature}>{feature}</li>)}</ul>
                 </article>
               ))}
             </div>
@@ -260,8 +288,15 @@ function App() {
               <SectionIntro eyebrow="INVESTOR PERSPECTIVE" title="Building infrastructure for the next generation of business." copy="OMNIRO begins where operational complexity is real: construction. The architecture is designed to expand through modular, governed intelligence." />
               <a className="button button-primary" href="mailto:investors@omniro.ai">Investor Relations <Arrow /></a>
             </div>
-            <div className="thesis-grid reveal">
-              {['Construction-first strategy','Real operational foundation','Modular architecture','European market focus','SaaS potential','Multi-industry expansion vision'].map((item, index) => <div key={item}><span>0{index + 1}</span><strong>{item}</strong></div>)}
+            <div className="investor-visual reveal">
+              <svg className="europe-network" viewBox="0 0 520 260" role="img" aria-label="Abstract European expansion network">
+                <path d="M83 54 143 32l42 21 44-15 35 25 50-14 32 32 53 10 31 45-35 30-8 38-52 14-36-14-52 26-38-30-49 10-18-41-43-24 25-40-21-40Z" />
+                {[[143,77],[224,91],[285,116],[349,95],[390,147],[307,181],[206,169],[121,139]].map(([cx,cy],i)=><circle key={i} cx={cx} cy={cy} r="5" />)}
+                <path className="network-line" d="M143 77 224 91 285 116 349 95 390 147 307 181 206 169 121 139 143 77M224 91 206 169M285 116 307 181" />
+              </svg>
+              <div className="thesis-grid">
+                {['Construction-first strategy','Operational foundation','Modular architecture','European market focus','SaaS model potential','Multi-industry vision'].map((item, index) => <div key={item}><span>0{index + 1}</span><strong>{item}</strong></div>)}
+              </div>
             </div>
           </div>
         </section>
