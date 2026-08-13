@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { engineeringNormAdapter, engineeringNormApproval, lifecycleFor, materialConsumptionAdapter, materialConsumptionApproval, scannerApproval, technologyAdapter, technologyApproval, unavailableAdapter, workScopeAdapter, workScopeApproval } from "./omniro-building-adapters.js";
+import { engineeringNormAdapter, engineeringNormApproval, lifecycleFor, materialConsumptionAdapter, materialConsumptionApproval, regionalPricingAdapter, regionalPricingApproval, scannerApproval, technologyAdapter, technologyApproval, unavailableAdapter, workScopeAdapter, workScopeApproval } from "./omniro-building-adapters.js";
 import type { OmniroModuleRuntimeState } from "./omniro-module-contract.js";
 
 const approvalState: OmniroModuleRuntimeState = {
@@ -77,5 +77,24 @@ describe("OMNIRO building adapters", () => {
     expect(materialConsumptionAdapter.resolve({projectId:"p",session,sources:{...base,sourceFailures:[]}as never})).toMatchObject({truth:"REAL",availability:"available",status:"not_started"});
     expect(materialConsumptionAdapter.resolve({projectId:"p",session,sources:{...base,sourceFailures:["material-consumption"]}as never})).toMatchObject({truth:"PARTIAL",availability:"partial"});
     expect(materialConsumptionAdapter.resolve({projectId:"p",session:{...session,permissions:[]},sources:{...base,sourceFailures:[]}as never})).toMatchObject({truth:"UNAVAILABLE",availability:"unavailable"});
+  });
+
+  it("maps real Regional Pricing lifecycle and immutable approval evidence",()=>{
+    const session={accessToken:"x",refreshToken:"x",user:{id:"u",email:"u@example.test",displayName:"Reviewer"},permissions:["regional_pricing.read","regional_pricing.approve"]};
+    const pricing={id:"rp",code:"PL-WAW",title:"Warsaw rates",revisionId:"rpr",revisionNumber:2,status:"ready_for_approval",version:4,currency:"PLN",countryCode:"PL",regionCode:"mazowieckie",city:"Warsaw",effectiveFrom:"2026-01-01",effectiveTo:"2026-12-31",customerCategory:"commercial",commercialProfile:"standard",priceSource:"Verified quotes",overheadRules:[],marginRules:[],discountRules:[],adjustmentRules:[],calculationVersion:"regional-pricing-v1",entries:[]};
+    const sources={project:{id:"p"},scans:[],assignments:[],designs:[],technologies:[],workScopes:[],engineeringNorms:[],materialConsumptions:[],regionalPricings:[pricing],sourceFailures:[]};
+    const state=regionalPricingAdapter.resolve({projectId:"p",session,sources:sources as never});
+    expect(state).toMatchObject({truth:"REAL",availability:"available",lifecycle:"APPROVAL_REQUIRED",record:{entityId:"rp",version:4}});
+    expect(regionalPricingApproval.detect(state,session)).toMatchObject({permitted:true,permission:"regional_pricing.approve",downstreamModuleId:"commercial-estimate"});
+    const approved={...pricing,status:"approved",approvedSnapshot:{id:"rps",contentFingerprint:"a".repeat(64)}};
+    const approvedState=regionalPricingAdapter.resolve({projectId:"p",session,sources:{...sources,regionalPricings:[approved]}as never});
+    expect(approvedState.evidence).toContainEqual(expect.objectContaining({entityType:"approved-regional-pricing-snapshot",entityId:"rps"}));
+  });
+
+  it("keeps Regional Pricing truthful for empty, failed, and unauthorized sources",()=>{
+    const session={accessToken:"x",refreshToken:"x",user:{id:"u",email:"u@example.test",displayName:"Reader"},permissions:["regional_pricing.read"]},base={project:{id:"p"},scans:[],assignments:[],designs:[],technologies:[],workScopes:[],engineeringNorms:[],materialConsumptions:[],regionalPricings:[]};
+    expect(regionalPricingAdapter.resolve({projectId:"p",session,sources:{...base,sourceFailures:[]}as never})).toMatchObject({truth:"REAL",status:"not_started"});
+    expect(regionalPricingAdapter.resolve({projectId:"p",session,sources:{...base,sourceFailures:["regional-pricing"]}as never})).toMatchObject({truth:"PARTIAL"});
+    expect(regionalPricingAdapter.resolve({projectId:"p",session:{...session,permissions:[]},sources:{...base,sourceFailures:[]}as never})).toMatchObject({truth:"UNAVAILABLE"});
   });
 });
