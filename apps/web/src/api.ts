@@ -6,6 +6,7 @@ import type {
 import {NotificationSchema,NotificationPreferencesSchema} from "@odls/contracts";
 
 export type Session={accessToken:string;refreshToken:string;user:{id:string;email:string;displayName:string};permissions:string[]};
+export type UserSummary={id:string;email:string;displayName:string;isDisabled:boolean;version:number};
 export type Resource="clients"|"properties"|"projects"|"tasks";
 export type EntityByResource={clients:ClientContract;properties:PropertyContract;projects:ProjectContract;tasks:TaskContract};
 export type CreateByResource={clients:CreateClientRequest;properties:CreatePropertyRequest;projects:CreateProjectRequest;tasks:CreateTaskRequest};
@@ -90,6 +91,7 @@ export const api={
   login:(tenantSlug:string,email:string,password:string)=>raw<Session>("/auth/login",json("POST",{tenantSlug,email,password})),
   me:()=>raw<Session["user"]>("/auth/me"),
   company:()=>raw<{id:string;name:string;slug:string}>("/company"),
+  users:()=>raw<Array<{id:string;email:string;display_name:string;is_disabled:boolean;version:number}>>("/users").then(items=>items.map(item=>({id:item.id,email:item.email,displayName:item.display_name,isDisabled:item.is_disabled,version:item.version}))),
   list:<R extends Resource>(resource:R,search="")=>raw<EntityByResource[R][]>(`/${resource}?pageSize=100${search?`&search=${encodeURIComponent(search)}`:""}`),
   projectsPage:(query:string)=>envelope<PageEnvelope<ProjectContract>>(`/projects?${query}`),
   get:<R extends Resource>(resource:R,id:string)=>raw<EntityByResource[R]>(`/${resource}/${id}`),

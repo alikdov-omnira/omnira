@@ -209,3 +209,7 @@ Investor Mode использует ту же систему, а не отдел�
 > **“What is happening, where is my information going, and why?”**
 >
 > OMNIRO должен уметь ответить.
+
+## Director / Owner Workspace V1
+
+Layer 3 is implemented as a permission-aware projection for the authenticated actor, not as a replacement identity or a conventional dashboard. The reusable Role Workspace Registry, grounded Director source projection, authority actions, existing approval adapters, assistant limitations, communications truth, and responsive behavior are defined in [OMNIRO Director / Owner Workspace V1](./omniro-director-owner-workspace-v1.md).
