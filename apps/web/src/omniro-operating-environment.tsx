@@ -1,3 +1,4 @@
+import{lazy,Suspense}from"react";
 import type{ProjectContract}from"@odls/contracts";
 import type{Session}from"./api.js";
 import{LivingEarth}from"./living-earth.js";
@@ -9,7 +10,8 @@ import{OmniroDirectorWorkspace,type DirectorContextPage}from"./omniro-director-w
 import type{DirectorSources}from"./omniro-director-workspace-model.js";
 import{dataFlowVisualRegistry,productRegistry,type OmniroEnvironmentLayer}from"./omniro-operating-environment-model.js";
 
-type Props={session:Session;projects:ProjectContract[];project:ProjectContract;runtime:OmniroRuntimeSnapshot;runtimes:ReadonlyMap<string,OmniroRuntimeSnapshot>;directorSources:DirectorSources;flows:readonly OmniroFlowRuntimeState[];layer:OmniroEnvironmentLayer;onLayer:(layer:OmniroEnvironmentLayer)=>void;onProject:(id:string)=>void;onModule:(id:string,projectId?:string)=>void;onWorkspace:(id:string,projectId?:string)=>void;onContext:(page:DirectorContextPage,id?:string)=>void};
+const OmniroAccountantWorkspace=lazy(()=>import("./omniro-accountant-workspace.js").then(module=>({default:module.OmniroAccountantWorkspace})));
+type Props={session:Session;projects:ProjectContract[];project:ProjectContract;runtime:OmniroRuntimeSnapshot;runtimes:ReadonlyMap<string,OmniroRuntimeSnapshot>;directorSources:DirectorSources;flows:readonly OmniroFlowRuntimeState[];layer:OmniroEnvironmentLayer;roleId?:string;onLayer:(layer:OmniroEnvironmentLayer)=>void;onRole:(id:string)=>void;onProject:(id:string)=>void;onModule:(id:string,projectId?:string)=>void;onWorkspace:(id:string,projectId?:string)=>void;onContext:(page:DirectorContextPage,id?:string)=>void};
 const truthLabel=(truth:string)=><span className={`oe-truth truth-${truth.toLowerCase()}`}>{truth}</span>;
 
 function EnvironmentHeader({session,layer,onLayer}:{session:Session;layer:OmniroEnvironmentLayer;onLayer:(layer:OmniroEnvironmentLayer)=>void}){
@@ -28,5 +30,7 @@ function BuildingWorld({projects,project,runtime,flows,onProject,onModule,onWork
 
 export function OmniroOperatingEnvironment(props:Props){
  const projectedFlows=dataFlowVisualRegistry.project(props.runtime,props.flows);
- return <section className={`oe-shell layer-${props.layer}`}><EnvironmentHeader session={props.session} layer={props.layer} onLayer={props.onLayer}/>{props.layer==="universe"?<Universe projects={props.projects} onLayer={props.onLayer}/>:props.layer==="building"?<BuildingWorld {...props}/>:<OmniroDirectorWorkspace session={props.session} projects={props.projects} project={props.project} runtimes={props.runtimes} sources={props.directorSources} flows={projectedFlows} onBack={()=>props.onLayer("building")} onProject={props.onProject} onModule={props.onModule} onWorkspace={props.onWorkspace} onContext={props.onContext}/>}<footer className="oe-constitution"><span><b>Unified data model</b>Single source of truth</span><span><b>Secure & compliant</b>RLS · Audit · Permissions</span><span><b>AI assisted</b>Explain · Recommend · Alert</span><span><b>Human authority</b>You decide · You approve</span><strong>Operating Environment, Not a Website</strong></footer></section>;
+ const workspaceProps={session:props.session,projects:props.projects,project:props.project,runtimes:props.runtimes,sources:props.directorSources,flows:projectedFlows,onBack:()=>props.onLayer("building"),onRole:props.onRole,onProject:props.onProject,onModule:props.onModule,onWorkspace:props.onWorkspace,onContext:props.onContext};
+ const role=props.roleId==="accountant"?<Suspense fallback={<section className="oc-load">Loading Accountant Workspace</section>}><OmniroAccountantWorkspace {...workspaceProps}/></Suspense>:<OmniroDirectorWorkspace {...workspaceProps}/>;
+ return <section className={`oe-shell layer-${props.layer}`}><EnvironmentHeader session={props.session} layer={props.layer} onLayer={props.onLayer}/>{props.layer==="universe"?<Universe projects={props.projects} onLayer={props.onLayer}/>:props.layer==="building"?<BuildingWorld {...props}/>:role}<footer className="oe-constitution"><span><b>Unified data model</b>Single source of truth</span><span><b>Secure & compliant</b>RLS · Audit · Permissions</span><span><b>AI assisted</b>Explain · Recommend · Alert</span><span><b>Human authority</b>You decide · You approve</span><strong>Operating Environment, Not a Website</strong></footer></section>;
 }

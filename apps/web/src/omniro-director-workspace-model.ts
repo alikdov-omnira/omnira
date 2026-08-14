@@ -1,11 +1,11 @@
-import type{DocumentContract,ExpenseContract,InvoiceContract,NotificationContract,ProjectContract,ProjectFinancialSummary,TaskContract}from"@odls/contracts";
+import type{DocumentContract,ExpenseContract,InvoiceContract,NotificationContract,PaymentContract,ProjectContract,ProjectFinancialSummary,TaskContract}from"@odls/contracts";
 import type{CommercialEstimateDto,Session,UserSummary}from"./api.js";
 import{buildingModuleRegistry}from"./omniro-building-modules.js";
 import type{OmniroLifecycle,OmniroRuntimeSnapshot,OmniroTruth}from"./omniro-module-contract.js";
 
 export type DirectorSourceKey="tasks"|"documents"|"notifications"|"users"|"finance";
 export type DirectorSourceState={truth:OmniroTruth;reason:string};
-export type DirectorSources={tasks:TaskContract[];documents:DocumentContract[];notifications:NotificationContract[];users:UserSummary[];invoices:InvoiceContract[];expenses:ExpenseContract[];financialSummaries:ProjectFinancialSummary[];sourceState:Record<DirectorSourceKey,DirectorSourceState>};
+export type DirectorSources={tasks:TaskContract[];documents:DocumentContract[];notifications:NotificationContract[];users:UserSummary[];invoices:InvoiceContract[];payments:PaymentContract[];expenses:ExpenseContract[];financialSummaries:ProjectFinancialSummary[];sourceState:Record<DirectorSourceKey,DirectorSourceState>};
 export type DirectorTarget={kind:"module"|"workspace"|"project"|"task"|"document"|"finance"|"notifications"|"reports";moduleId?:string;projectId?:string;entityId?:string};
 export type DirectorPriorityAction={id:string;truth:"REAL"|"DERIVED";source:string;title:string;reason:string;urgency:"critical"|"high"|"normal";status:string;projectId?:string;responsiblePerson?:string;responsibleRole?:string;target:DirectorTarget;provenance:readonly string[]};
 export type DirectorMetric={id:string;label:string;value:string;truth:OmniroTruth;reason:string};
