@@ -1,7 +1,7 @@
 import type{ProjectContract}from"@odls/contracts";
-import type{Session}from"./api.js";
 import type{OmniroFlowRuntimeState}from"./omniro-flow-contract.js";
 import type{OmniroRuntimeSnapshot,OmniroTruth}from"./omniro-module-contract.js";
+export{roleWorkspaceRegistry as roleRegistry,OmniroRoleWorkspaceRegistry as OmniroRoleRegistry}from"./omniro-role-workspace-registry.js";
 
 export type OmniroEnvironmentLayer="universe"|"building"|"role";
 export type OmniroEnvironmentRoute={layer:OmniroEnvironmentLayer;roleId?:string};
@@ -25,19 +25,6 @@ export const productRegistry=new OmniroProductRegistry([
  {id:"tax",label:"OMNIRO Tax / PIT",description:"Tax and compliance",glyph:"TAX",defaultTruth:"UNAVAILABLE",resolve:unavailable("Tax Product World")},
  {id:"market",label:"OMNIRO Market",description:"Market intelligence",glyph:"↗",defaultTruth:"UNAVAILABLE",resolve:unavailable("Market Product World")},
  {id:"people",label:"OMNIRO People",description:"People and workforce",glyph:"◎",defaultTruth:"UNAVAILABLE",resolve:unavailable("People Product World")}
-]);
-
-export type OmniroRoleDefinition={id:string;label:string;description:string;requiredPermissions:string[];defaultTruth:OmniroTruth};
-export class OmniroRoleRegistry{readonly definitions:readonly OmniroRoleDefinition[];readonly byId:ReadonlyMap<string,OmniroRoleDefinition>;constructor(items:readonly OmniroRoleDefinition[]){const map=new Map<string,OmniroRoleDefinition>();for(const item of items){if(map.has(item.id))throw new Error(`Duplicate OMNIRO role: ${item.id}`);map.set(item.id,item)}this.definitions=Object.freeze([...items]);this.byId=map}get(id:string){return this.byId.get(id)}resolve(id:string,session:Session){const role=this.get(id);if(!role)return{truth:"UNAVAILABLE"as const,reason:"Unknown role workspace."};if(role.defaultTruth!=="REAL")return{truth:role.defaultTruth,reason:"Role projection is registered but not implemented in this slice."};const allowed=role.requiredPermissions.every(permission=>session.permissions.includes(permission));return allowed?{truth:"REAL"as const,reason:"Workspace is projected from the authenticated actor and existing permissions."}:{truth:"UNAVAILABLE"as const,reason:"The authenticated actor does not hold the permissions required by this workspace."}}}
-export const roleRegistry=new OmniroRoleRegistry([
- {id:"director",label:"Director / Owner",description:"Portfolio command and human authority workspace",requiredPermissions:["projects.read"],defaultTruth:"REAL"},
- {id:"executive-assistant",label:"Executive Assistant",description:"Future role projection",requiredPermissions:[],defaultTruth:"UNAVAILABLE"},
- {id:"accountant",label:"Accountant",description:"Future role projection",requiredPermissions:[],defaultTruth:"UNAVAILABLE"},
- {id:"project-manager",label:"Project Manager",description:"Future role projection",requiredPermissions:[],defaultTruth:"UNAVAILABLE"},
- {id:"site-manager",label:"Site Manager",description:"Future role projection",requiredPermissions:[],defaultTruth:"UNAVAILABLE"},
- {id:"engineer",label:"Engineer",description:"Future role projection",requiredPermissions:[],defaultTruth:"UNAVAILABLE"},
- {id:"procurement-manager",label:"Procurement Manager",description:"Future role projection",requiredPermissions:[],defaultTruth:"UNAVAILABLE"},
- {id:"legal-counsel",label:"Legal Counsel",description:"Future role projection",requiredPermissions:[],defaultTruth:"UNAVAILABLE"}
 ]);
 
 export type CanonicalDataFlowId="01"|"02"|"03"|"04"|"05"|"06"|"07"|"08";
