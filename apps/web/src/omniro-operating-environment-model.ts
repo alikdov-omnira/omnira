@@ -4,16 +4,16 @@ import type{OmniroRuntimeSnapshot,OmniroTruth}from"./omniro-module-contract.js";
 export{roleWorkspaceRegistry as roleRegistry,OmniroRoleWorkspaceRegistry as OmniroRoleRegistry}from"./omniro-role-workspace-registry.js";
 
 export type OmniroEnvironmentLayer="universe"|"building"|"role";
-export type OmniroEnvironmentRoute={layer:OmniroEnvironmentLayer;roleId?:string};
+export type OmniroEnvironmentRoute={layer:OmniroEnvironmentLayer;roleId?:string;projectId?:string};
 export const parseEnvironmentRoute=(hash:string):OmniroEnvironmentRoute|undefined=>{
- const parts=hash.replace(/^#/,"").split("/").filter(Boolean).map(decodeURIComponent);
+ const[path,query=""]=hash.replace(/^#/,"").split("?"),parts=path.split("/").filter(Boolean).map(decodeURIComponent),projectId=new URLSearchParams(query).get("project")??undefined;
  if(parts[0]!=="omniro")return undefined;
  if(parts[1]==="universe")return{layer:"universe"};
  if(parts[1]==="building")return{layer:"building"};
- if(parts[1]==="role")return{layer:"role",roleId:parts[2]??"director"};
+ if(parts[1]==="role")return{layer:"role",roleId:parts[2]??"director",...(projectId?{projectId}:{})};
  return undefined;
 };
-export const environmentHash=(route:OmniroEnvironmentRoute)=>route.layer==="role"?`#omniro/role/${encodeURIComponent(route.roleId??"director")}`:`#omniro/${route.layer}`;
+export const environmentHash=(route:OmniroEnvironmentRoute)=>route.layer==="role"?`#omniro/role/${encodeURIComponent(route.roleId??"director")}${route.projectId?`?project=${encodeURIComponent(route.projectId)}`:""}`:`#omniro/${route.layer}`;
 
 export type OmniroProductDefinition={id:string;label:string;description:string;glyph:string;defaultTruth:OmniroTruth;resolve:(projects:readonly ProjectContract[])=>{truth:OmniroTruth;reason:string};route?:OmniroEnvironmentRoute};
 export class OmniroProductRegistry{readonly definitions:readonly OmniroProductDefinition[];readonly byId:ReadonlyMap<string,OmniroProductDefinition>;constructor(items:readonly OmniroProductDefinition[]){const map=new Map<string,OmniroProductDefinition>();for(const item of items){if(map.has(item.id))throw new Error(`Duplicate OMNIRO product: ${item.id}`);map.set(item.id,item)}this.definitions=Object.freeze([...items]);this.byId=map}get(id:string){return this.byId.get(id)}}
