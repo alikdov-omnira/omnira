@@ -217,3 +217,7 @@ Layer 3 is implemented as a permission-aware projection for the authenticated ac
 ## Accountant Workspace V1
 
 Accountant is the second REAL role projection and reuses the same actor-preserving Role Workspace Registry and operating environment. It projects existing Finance, Documents/OCR, Tasks, Notifications, project summaries, and approved authority adapters into a provenance-bearing accounting inbox. KSeF, banking, external communications, autonomous posting, and tax/legal advice remain explicitly unavailable. The contract is defined in [OMNIRO Accountant Workspace V1](./omniro-accountant-workspace-v1.md).
+
+## Project Manager Workspace V1
+
+Project Manager is the third REAL role projection. It preserves the authenticated actor while adding a project-aware deep link, deterministic task-first attention, exact provenance, responsibility and deadline visibility, and access to existing project authorities. It creates no backend workflow or duplicate approval. Drawing intelligence and external communication remain explicitly unavailable. The contract is defined in [OMNIRO Project Manager Workspace V1](./omniro-project-manager-workspace-v1.md), with the future drawing boundary recorded in [Engineering Document Intelligence Boundary](./omniro-engineering-document-intelligence-boundary.md).
