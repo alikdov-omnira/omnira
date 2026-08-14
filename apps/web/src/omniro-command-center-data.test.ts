@@ -1,5 +1,5 @@
 import{afterEach,describe,expect,it,vi}from"vitest";
-import{api,type MaterialConsumptionDto,type Session}from"./api.js";
+import{api,type CompanyPriceBookDto,type MaterialConsumptionDto,type Session}from"./api.js";
 import{loadOmniroData}from"./omniro-command-center-data.js";
 
 const session:Session={accessToken:"x",refreshToken:"x",user:{id:"u",email:"u@example.test",displayName:"User"},permissions:["projects.read","material_consumption.read"]};
@@ -32,4 +32,10 @@ describe("OMNIRO Command Center Material Consumption source",()=>{
   expect(source?.materialConsumptions).toEqual([]);
   expect(source?.sourceFailures).toContain("material-consumption");
  });
+});
+
+describe("OMNIRO Command Center Company Price Book source",()=>{
+ afterEach(()=>vi.restoreAllMocks());
+ it("loads real detail and latest approved immutable snapshot into every project runtime",async()=>{const priceBook:CompanyPriceBookDto={id:"book-1",code:"CPB",title:"Company prices",purpose:null,revisionId:"revision-2",revisionNumber:2,status:"draft",currency:"PLN",effectiveFrom:"2026-01-01",effectiveTo:null,version:3,entries:[]},approvedSnapshot={id:"snapshot-1",contentFingerprint:"a".repeat(64),revisionNumber:1};vi.spyOn(api,"projectsPage").mockResolvedValue({data:[{id:"project-1",name:"Project",projectNumber:"P-1",status:"active",currencyCode:"PLN",version:1}],pagination:{page:1,pageSize:100,total:1,totalPages:1}}as never);vi.spyOn(api,"companyPriceBooks").mockResolvedValue([priceBook]);vi.spyOn(api,"companyPriceBook").mockResolvedValue(priceBook);vi.spyOn(api,"companyPriceBookSnapshot").mockResolvedValue(approvedSnapshot);const loaded=await loadOmniroData({...session,permissions:["projects.read","company_price_books.read","company_price_books.snapshots.read"]});expect(api.companyPriceBooks).toHaveBeenCalledOnce();expect(api.companyPriceBook).toHaveBeenCalledWith("book-1");expect(api.companyPriceBookSnapshot).toHaveBeenCalledWith("book-1");expect(loaded.byProject.get("project-1")?.companyPriceBooks).toEqual([{...priceBook,approvedSnapshot}])});
+ it("does not call or fabricate Company Price Book data without read permission",async()=>{vi.spyOn(api,"projectsPage").mockResolvedValue({data:[{id:"project-1",name:"Project",projectNumber:"P-1",status:"active",currencyCode:"PLN",version:1}],pagination:{page:1,pageSize:100,total:1,totalPages:1}}as never);const list=vi.spyOn(api,"companyPriceBooks");const loaded=await loadOmniroData({...session,permissions:["projects.read"]});expect(list).not.toHaveBeenCalled();expect(loaded.byProject.get("project-1")?.companyPriceBooks).toEqual([])});
 });
