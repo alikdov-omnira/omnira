@@ -6,6 +6,8 @@
 
 Обязательная политика production delivery: [OMNIRO Production Delivery Policy](./omniro-production-delivery-policy.md). Её необходимо проверить перед любыми действиями по merge, push или deployment.
 
+Текущая архитектура трёхслойной рабочей среды: [OMNIRO Three-Layer Operating Environment](./omniro-three-layer-operating-environment.md). Она расширяет, но не заменяет защищённые Stage 2 registries, authority boundaries и deep links.
+
 ## Главный принцип
 
 > **Рекламный экран OMNIRO и рабочая система OMNIRO — это один интерфейс.**
