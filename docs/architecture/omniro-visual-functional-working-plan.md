@@ -213,3 +213,7 @@ Investor Mode использует ту же систему, а не отдел�
 ## Director / Owner Workspace V1
 
 Layer 3 is implemented as a permission-aware projection for the authenticated actor, not as a replacement identity or a conventional dashboard. The reusable Role Workspace Registry, grounded Director source projection, authority actions, existing approval adapters, assistant limitations, communications truth, and responsive behavior are defined in [OMNIRO Director / Owner Workspace V1](./omniro-director-owner-workspace-v1.md).
+
+## Accountant Workspace V1
+
+Accountant is the second REAL role projection and reuses the same actor-preserving Role Workspace Registry and operating environment. It projects existing Finance, Documents/OCR, Tasks, Notifications, project summaries, and approved authority adapters into a provenance-bearing accounting inbox. KSeF, banking, external communications, autonomous posting, and tax/legal advice remain explicitly unavailable. The contract is defined in [OMNIRO Accountant Workspace V1](./omniro-accountant-workspace-v1.md).

@@ -10,6 +10,7 @@ import "./omniro-stage.css";
 import "./omniro-command-center.css";
 import "./omniro-operating-environment.css";
 import "./omniro-director-workspace.css";
+import "./omniro-accountant-workspace.css";
 
 const queryClient = new QueryClient();
 createRoot(document.getElementById("root")!).render(<StrictMode><QueryClientProvider client={queryClient}><App /></QueryClientProvider></StrictMode>);
