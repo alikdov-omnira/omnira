@@ -4,6 +4,7 @@ const loadStage2B=()=>import("./omniro-stage-2b-workspaces.js");
 const loadStage2C=()=>import("./omniro-stage-2c-workspace.js");
 const loadMaterialConsumption=()=>import("./omniro-material-consumption-workspace.js");
 const loadRegionalPricing=()=>import("./omniro-regional-pricing-workspace.js");
+const loadCompanyPriceBook=()=>import("./omniro-company-price-book-workspace.js");
 const loadCommercialEstimate=()=>import("./omniro-commercial-estimate-workspace.js");
 export const buildingWorkspaceRegistry=new OmniroWorkspaceRegistry([
  {id:"room-scanner",moduleId:"room-scanner",routeSegment:"room-scanner",requiredPermissions:["room_scans.read"],load},
@@ -14,5 +15,6 @@ export const buildingWorkspaceRegistry=new OmniroWorkspaceRegistry([
  ,{id:"engineering-norms",moduleId:"engineering-norms",routeSegment:"engineering-norms",requiredPermissions:["engineering_norms.read"],load:loadStage2C}
  ,{id:"material-consumption",moduleId:"material-consumption",routeSegment:"material-consumption",requiredPermissions:["material_consumption.read"],load:loadMaterialConsumption}
  ,{id:"regional-pricing",moduleId:"regional-pricing",routeSegment:"regional-pricing",requiredPermissions:["regional_pricing.read"],load:loadRegionalPricing}
+ ,{id:"company-price-book",moduleId:"company-price-book",routeSegment:"company-price-book",requiredPermissions:["company_price_books.read"],load:loadCompanyPriceBook}
  ,{id:"commercial-estimate",moduleId:"commercial-estimate",routeSegment:"commercial-estimate",requiredPermissions:["commercial_estimates.read"],load:loadCommercialEstimate}
 ],buildingModuleRegistry);
