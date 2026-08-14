@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { engineeringNormAdapter, engineeringNormApproval, lifecycleFor, materialConsumptionAdapter, materialConsumptionApproval, regionalPricingAdapter, regionalPricingApproval, scannerApproval, technologyAdapter, technologyApproval, unavailableAdapter, workScopeAdapter, workScopeApproval } from "./omniro-building-adapters.js";
+import { commercialEstimateAdapter, commercialEstimateApproval, engineeringNormAdapter, engineeringNormApproval, lifecycleFor, materialConsumptionAdapter, materialConsumptionApproval, regionalPricingAdapter, regionalPricingApproval, scannerApproval, technologyAdapter, technologyApproval, unavailableAdapter, workScopeAdapter, workScopeApproval } from "./omniro-building-adapters.js";
 import type { OmniroModuleRuntimeState } from "./omniro-module-contract.js";
 
 const approvalState: OmniroModuleRuntimeState = {
@@ -96,5 +96,16 @@ describe("OMNIRO building adapters", () => {
     expect(regionalPricingAdapter.resolve({projectId:"p",session,sources:{...base,sourceFailures:[]}as never})).toMatchObject({truth:"REAL",status:"not_started"});
     expect(regionalPricingAdapter.resolve({projectId:"p",session,sources:{...base,sourceFailures:["regional-pricing"]}as never})).toMatchObject({truth:"PARTIAL"});
     expect(regionalPricingAdapter.resolve({projectId:"p",session:{...session,permissions:[]},sources:{...base,sourceFailures:[]}as never})).toMatchObject({truth:"UNAVAILABLE"});
+  });
+
+  it("maps Commercial Estimate lifecycle, source authorities, approval RBAC, and immutable output",()=>{
+    const session={accessToken:"x",refreshToken:"x",user:{id:"u",email:"u@example.test",displayName:"Reviewer"},permissions:["commercial_estimates.read","commercial_estimates.approve"]},estimate={id:"ce",projectId:"p",code:"CE-1",title:"Offer",revisionId:"cer",revisionNumber:1,status:"ready_for_approval",mode:"tender",currency:"PLN",totals:{grossTotal:123},version:2,lines:[],analysis:{sourceSnapshots:{materialConsumptionSnapshotId:"mcs",pricingSnapshotId:"rps"}}},base={project:{id:"p"},scans:[],assignments:[],designs:[],technologies:[],workScopes:[],engineeringNorms:[],materialConsumptions:[],regionalPricings:[],commercialEstimates:[estimate],sourceFailures:[]};
+    const state=commercialEstimateAdapter.resolve({projectId:"p",session,sources:base as never});
+    expect(state).toMatchObject({truth:"REAL",lifecycle:"APPROVAL_REQUIRED",record:{entityId:"ce",version:2}});
+    expect(state.evidence.map(x=>x.entityId)).toEqual(["cer","mcs","rps"]);
+    expect(commercialEstimateApproval.detect(state,session)).toMatchObject({permitted:true,permission:"commercial_estimates.approve",openWorkspaceId:"commercial-estimate"});
+    const approved=commercialEstimateAdapter.resolve({projectId:"p",session,sources:{...base,commercialEstimates:[{...estimate,status:"approved",approvedSnapshot:{id:"ces",contentFingerprint:"f"}}]}as never});
+    expect(approved.evidence).toContainEqual(expect.objectContaining({entityType:"approved-commercial-estimate-snapshot",entityId:"ces"}));
+    expect(commercialEstimateAdapter.resolve({projectId:"p",session:{...session,permissions:[]},sources:base as never})).toMatchObject({truth:"UNAVAILABLE"});
   });
 });
