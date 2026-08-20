@@ -1,0 +1,3 @@
+import{domainErrors}from"../errors.js";import type{ClientDecision,CreateClientRequest}from"./client-workspace-types.js";
+export function normalizeClientRequest(input:CreateClientRequest){const subject=input.subject.trim(),description=input.description.trim();if(!subject)throw domainErrors.validation("Subject is required");if(!description)throw domainErrors.validation("Description is required");return{...input,subject,description}}
+export function validateClientDecision(value:string):asserts value is ClientDecision{if(!["approved","rejected","clarification_requested"].includes(value))throw domainErrors.validation("Invalid client decision")}
