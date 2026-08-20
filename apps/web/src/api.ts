@@ -293,6 +293,10 @@ export const api={
   constructionAssistant:(projectId:string)=>raw<ConstructionAssistantPanelDto>(`/construction-assistant/projects/${projectId}`),
   analyzeConstructionProject:(projectId:string)=>raw<ConstructionAssistantPanelDto>(`/construction-assistant/projects/${projectId}/analyze`,json("POST",{})),
   constructionAssistantDecision:(recommendationId:string,decision:"accepted"|"dismissed"|"deferred",comment?:string)=>raw<any>(`/construction-assistant/recommendations/${recommendationId}/decision`,json("POST",{decision,comment})),
+  clientProjects:()=>raw<any[]>("/client-workspace/projects"),
+  clientProject:(projectId:string)=>raw<any>(`/client-workspace/projects/${projectId}`),
+  createClientRequest:(body:{projectId:string;requestType:string;subject:string;description:string})=>raw<any>("/client-workspace/requests",json("POST",body)),
+  decideClientApproval:(approvalId:string,body:{expectedVersion:number;decision:"approved"|"rejected"|"clarification_requested";comment?:string})=>raw<any>(`/client-workspace/approvals/${approvalId}/decision`,json("POST",body)),
   tagRoomScanPhoto:(scanId:string,attachmentId:string,condition:string,note?:string)=>raw<any>(`/construction-assistant/room-scans/${scanId}/photos/${attachmentId}/tags`,json("POST",{condition,note})),
   exportReport:async(name:ReportName,query="range=30")=>{const headers=new Headers();if(session)headers.set("authorization",`Bearer ${session.accessToken}`);const response=await fetch(`${base}/reports/${name}/export?${query}`,{headers});if(!response.ok){const body=await response.json().catch(()=>({}));throw new ApiError(response.status,body?.error?.code??"REQUEST_FAILED");}return {blob:await response.blob(),disposition:response.headers.get("content-disposition")};},
   logout:()=>session?raw<{revoked:boolean}>("/auth/logout",json("POST",{refreshToken:session.refreshToken})):Promise.resolve()
