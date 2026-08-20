@@ -1,5 +1,5 @@
 export const notificationEventTypes=[
- "task.assigned","task.due_soon","task.overdue","task.completed","project.started","project.paused","project.completed",
+ "task.assigned","task.due_soon","task.overdue","task.started","task.blocked","task.resumed","task.submitted_for_review","task.accepted","task.returned","task.completed","task.cancelled","task.problem_reported","task.problem_acknowledged","task.problem_resolved","project.started","project.paused","project.completed",
  "invoice.issued","invoice.due_soon","invoice.overdue","invoice.paid","payment.received","expense.approved","expense.rejected",
  "document.uploaded","document.version_created","document.archived","document.page_ocr_requested","document.page_ocr_started","document.page_ocr_completed","document.page_ocr_failed","document.page_ocr_retried","document.page_ocr_cancelled",
  "document.analysis_requested","document.analysis_started","document.classified","document.extraction_completed","document.analysis_failed","document.analysis_retried","document.analysis_cancelled",

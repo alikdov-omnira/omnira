@@ -1,0 +1,5 @@
+import{domainErrors}from"../errors.js";
+import type{CreateTaskProblem,TaskProblemCategory,TaskProblemStatus}from"./task-problem-types.js";
+const categories=new Set<TaskProblemCategory>(["missing_material","blocker","defect","damage","unsafe_condition","needs_foreman_answer","other"]);
+export function normalizeTaskProblem(input:CreateTaskProblem):CreateTaskProblem{const description=input.description?.trim(),location=input.location?.trim();if(!categories.has(input.category))throw domainErrors.validation("Invalid task problem category");if(!description)throw domainErrors.validation("Problem description is required");if(description.length>4000)throw domainErrors.validation("Problem description must not exceed 4000 characters");if(location&&location.length>500)throw domainErrors.validation("Problem location must not exceed 500 characters");return{category:input.category,description,location:location||undefined};}
+export function taskProblemTransition(current:TaskProblemStatus,next:Exclude<TaskProblemStatus,"open">){if(current==="resolved"||current===next)throw domainErrors.transition();return next;}

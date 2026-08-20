@@ -74,11 +74,12 @@ export type CreateProjectRequest=z.input<typeof CreateProjectRequestSchema>;
 export type UpdateProjectRequest=z.infer<typeof UpdateProjectRequestSchema>;
 export type ProjectContract=z.infer<typeof ProjectSchema>;
 
-export const TaskStatusSchema=z.enum(["todo","in_progress","blocked","completed","cancelled","archived"]);
+export const TaskStatusSchema=z.enum(["todo","in_progress","blocked","submitted_for_review","accepted","returned","completed","cancelled","archived"]);
 export const TaskPrioritySchema=z.enum(["low","normal","high","urgent"]);
 const TaskDateSchema=z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 export const TaskAssigneeSchema=z.object({userId:z.string().uuid(),displayName:z.string(),assignedAt:z.union([z.string(),z.date()])});
-export const TaskSchema=z.object({id:z.string().uuid(),tenantId:z.string().uuid(),projectId:z.string().uuid(),title:z.string(),description:z.string().nullable(),status:TaskStatusSchema,priority:TaskPrioritySchema,dueDate:TaskDateSchema.nullable(),startedAt:z.union([z.string(),z.date()]).nullable(),completedAt:z.union([z.string(),z.date()]).nullable(),isOverdue:z.boolean(),assignees:z.array(TaskAssigneeSchema),version:z.number().int().positive(),createdAt:z.union([z.string(),z.date()]),updatedAt:z.union([z.string(),z.date()]),archivedAt:z.union([z.string(),z.date()]).nullable()});
+export const TaskReviewEventSchema=z.object({id:z.string().uuid(),action:z.enum(["submitted_for_review","accepted","returned"]),comment:z.string().nullable(),taskVersion:z.number().int().positive(),createdAt:z.union([z.string(),z.date()]),createdBy:z.string().uuid()});
+export const TaskSchema=z.object({id:z.string().uuid(),tenantId:z.string().uuid(),projectId:z.string().uuid(),title:z.string(),description:z.string().nullable(),status:TaskStatusSchema,priority:TaskPrioritySchema,dueDate:TaskDateSchema.nullable(),startedAt:z.union([z.string(),z.date()]).nullable(),completedAt:z.union([z.string(),z.date()]).nullable(),isOverdue:z.boolean(),assignees:z.array(TaskAssigneeSchema),lastReview:TaskReviewEventSchema.nullable().optional(),version:z.number().int().positive(),createdAt:z.union([z.string(),z.date()]),updatedAt:z.union([z.string(),z.date()]),archivedAt:z.union([z.string(),z.date()]).nullable()});
 export const CreateTaskRequestSchema=z.object({tenantId:z.never().optional(),projectId:z.string().uuid(),title:z.string().trim().min(1).max(500),description:z.string().max(10000).optional(),priority:TaskPrioritySchema.default("normal"),dueDate:TaskDateSchema.optional()}).strict();
 export const UpdateTaskRequestSchema=z.object({tenantId:z.never().optional(),expectedVersion:z.number().int().positive(),projectId:z.string().uuid().optional(),title:z.string().trim().min(1).max(500).optional(),description:z.string().max(10000).nullable().optional(),priority:TaskPrioritySchema.optional(),dueDate:TaskDateSchema.nullable().optional()}).strict();
 const TaskBooleanQuerySchema=z.preprocess(value=>value==="true"?true:value==="false"?false:value,z.boolean());
@@ -86,12 +87,22 @@ export const TaskListQuerySchema=z.object({page:z.coerce.number().int().positive
 export const TaskIdParamsSchema=z.object({id:z.string().uuid()});
 export const TaskAssigneeParamsSchema=z.object({id:z.string().uuid(),userId:z.string().uuid()});
 export const TaskVersionRequestSchema=z.object({expectedVersion:z.number().int().positive()}).strict();
+export const TaskReviewRequestSchema=z.object({expectedVersion:z.number().int().positive(),comment:z.string().trim().max(2000).optional()}).strict();
 export const AssignTaskRequestSchema=z.object({userId:z.string().uuid(),expectedVersion:z.number().int().positive()}).strict();
 export const TaskDetailResponseSchema=z.object({data:TaskSchema});
 export const TaskListResponseSchema=z.object({data:z.array(TaskSchema),pagination:PaginationSchema});
 export type CreateTaskRequest=z.input<typeof CreateTaskRequestSchema>;
 export type UpdateTaskRequest=z.infer<typeof UpdateTaskRequestSchema>;
 export type TaskContract=z.infer<typeof TaskSchema>;
+
+export const TaskProblemCategorySchema=z.enum(["missing_material","blocker","defect","damage","unsafe_condition","needs_foreman_answer","other"]);
+export const TaskProblemStatusSchema=z.enum(["open","acknowledged","resolved"]);
+export const TaskProblemSchema=z.object({id:z.string().uuid(),tenantId:z.string().uuid(),projectId:z.string().uuid(),taskId:z.string().uuid(),category:TaskProblemCategorySchema,description:z.string(),location:z.string().nullable(),status:TaskProblemStatusSchema,version:z.number().int().positive(),createdAt:z.union([z.string(),z.date()]),createdBy:z.string().uuid(),updatedAt:z.union([z.string(),z.date()]),updatedBy:z.string().uuid()});
+export const CreateTaskProblemRequestSchema=z.object({category:TaskProblemCategorySchema,description:z.string().trim().min(1).max(4000),location:z.string().trim().max(500).optional()}).strict();
+export const UpdateTaskProblemRequestSchema=z.object({expectedVersion:z.number().int().positive(),status:z.enum(["acknowledged","resolved"])}).strict();
+export const TaskProblemListQuerySchema=z.object({taskId:z.string().uuid().optional(),projectId:z.string().uuid().optional(),status:TaskProblemStatusSchema.optional()}).strict();
+export const TaskProblemIdParamsSchema=z.object({id:z.string().uuid()});
+export type TaskProblemContract=z.infer<typeof TaskProblemSchema>;
 
 const FinanceDateSchema=z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const FinanceMoneySchema=z.string().regex(/^(0|[1-9]\d*)(\.\d{1,4})?$/);

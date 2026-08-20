@@ -8,7 +8,7 @@ export type ProjectManagerAttention={id:string;title:string;why:string;location:
 export type ProjectManagerProjection={project:ProjectContract;manager?:UserSummary;metrics:Array<{id:string;label:string;value:string;truth:OmniroTruth;reason:string}>;attention:ProjectManagerAttention[];briefing:ProjectManagerAttention[];tasks:TaskContract[];documents:DocumentContract[];scope?:WorkScopeDto;materials?:MaterialConsumptionDto;financial:DirectorSources["financialSummaries"][number]|undefined;moduleStates:Array<{id:string;label:string;truth:OmniroTruth;lifecycle:OmniroLifecycle;status:string;reason:string;target:DirectorTarget;provenance:readonly string[]}>;drawingIntelligence:{truth:"UNAVAILABLE";reason:string};changeAwareness:{truth:"PARTIAL";reason:string}};
 
 const attentionLifecycles=new Set<OmniroLifecycle>(["WAIT","APPROVAL_REQUIRED","CONFLICT","BLOCKED"]);
-const terminalTasks=new Set(["completed","cancelled","archived"]);
+const terminalTasks=new Set(["accepted","completed","cancelled","archived"]);
 const provenance=(state:ReturnType<OmniroRuntimeSnapshot["modules"]["get"]>)=>state?.evidence.map(item=>`${item.entityType}:${item.entityId}${item.version?`:v${item.version}`:""}`)??[];
 const urgency=(lifecycle:OmniroLifecycle):ProjectManagerAttention["urgency"]=>lifecycle==="CONFLICT"||lifecycle==="BLOCKED"?"critical":lifecycle==="APPROVAL_REQUIRED"?"high":"normal";
 const assigned=(task:TaskContract)=>task.assignees[0]?.displayName??"UNASSIGNED";
