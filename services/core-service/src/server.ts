@@ -81,6 +81,10 @@ import{AddCompanyPriceEntryRequestSchema,CompanyPriceBookEntryParamsSchema,Compa
 import{CompanyPriceBookService}from"./application/company-price-book/company-price-book-service.js";import{CompanyPriceBookRepository}from"./infrastructure/company-price-book/company-price-book-repository.js";import type{CompanyPriceBookActor}from"./authorization/company-price-book-policy.js";
 import{ClientWorkspaceApprovalParamsSchema,ClientWorkspaceProjectParamsSchema,CreateClientWorkspaceRequestSchema,DecideClientApprovalRequestSchema}from"@odls/contracts";
 import{ClientWorkspaceService,type ClientWorkspaceActor}from"./application/client-workspace/client-workspace-service.js";
+import{AiSecretaryCommandRequestSchema}from"@odls/contracts";
+import{AiSecretaryService}from"./application/ai-platform/ai-secretary-service.js";
+import{PostgresAiPlatformRepository}from"./infrastructure/ai-platform/postgres-ai-platform-repository.js";
+import type{AiActor}from"./application/ai-platform/ai-platform-repository.js";
 
 dotenv.config({ path: join(import.meta.dirname, "../../../../.env") });
 
@@ -127,6 +131,7 @@ export function buildServer(): FastifyInstance<any, any, any, any> {
   const engineeringCausalityService=pool?new EngineeringCausalityService(pool):undefined;
   const companyPriceBookService=pool?new CompanyPriceBookService(new CompanyPriceBookRepository(pool)):undefined;
   const clientWorkspaceService=pool?new ClientWorkspaceService(pool):undefined;
+  const aiSecretaryService=pool?new AiSecretaryService(pool,new PostgresAiPlatformRepository()):undefined;
   const jwtSecret = process.env.JWT_SECRET ?? "development-only-secret-change-me-32chars";
   void app.register(helmet); void app.register(jwt, { secret:jwtSecret }); void app.register(multipart,{limits:{fileSize:scannerEnvironmentInteger("SCANNER_MAX_UPLOAD_BYTES",25*1024*1024,1,1024*1024*1024),files:1,fields:12}});
   app.decorateRequest("claims", null);
@@ -179,6 +184,7 @@ export function buildServer(): FastifyInstance<any, any, any, any> {
   function causality(){if(!engineeringCausalityService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return engineeringCausalityService;}function causalityActor(request:any):EngineeringCausalityActor{return{id:request.claims.sub,tenantId:request.claims.tenantId,permissions:request.claims.permissions,correlationId:String(request.headers["x-correlation-id"]??request.id)};}
   function companyPriceBooks(){if(!companyPriceBookService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return companyPriceBookService;}function companyPriceBookActor(request:any):CompanyPriceBookActor{return{id:request.claims.sub,tenantId:request.claims.tenantId,permissions:request.claims.permissions,correlationId:String(request.headers["x-correlation-id"]??request.id),actorType:"human"};}
   function clientWorkspace(){if(!clientWorkspaceService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return clientWorkspaceService;}function clientWorkspaceActor(request:any):ClientWorkspaceActor{return{id:request.claims.sub,tenantId:request.claims.tenantId,permissions:request.claims.permissions,correlationId:String(request.headers["x-correlation-id"]??request.id)};}
+  function aiSecretary(){if(!aiSecretaryService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return aiSecretaryService;}function aiActor(request:any):AiActor{return{id:request.claims.sub,tenantId:request.claims.tenantId,permissions:request.claims.permissions,correlationId:String(request.headers["x-correlation-id"]??request.id)};}
   function constructionAssistantActor(request:any):ConstructionAssistantActor{const value=String(request.headers["x-correlation-id"]??request.id);return{id:request.claims.sub,tenantId:request.claims.tenantId,permissions:request.claims.permissions,correlationId:/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)?value:randomUUID()};}
   function publicSuggestionRequest(value:any){const{snapshotFingerprint:_,requestedBy:__,...result}=value;return result;}
   function notifications(){if(!notificationService)throw Object.assign(new Error("Database is not configured"),{statusCode:503,code:"database_unavailable"});return notificationService;}
@@ -519,6 +525,9 @@ export function buildServer(): FastifyInstance<any, any, any, any> {
   app.get("/api/v1/client-workspace/projects/:projectId",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await clientWorkspace().project(clientWorkspaceActor(request),ClientWorkspaceProjectParamsSchema.parse(request.params).projectId)})));
   app.post("/api/v1/client-workspace/requests",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await clientWorkspace().createRequest(clientWorkspaceActor(request),CreateClientWorkspaceRequestSchema.parse(request.body))}),201));
   app.post("/api/v1/client-workspace/approvals/:approvalId/decision",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await clientWorkspace().decide(clientWorkspaceActor(request),ClientWorkspaceApprovalParamsSchema.parse(request.params).approvalId,DecideClientApprovalRequestSchema.parse(request.body))})));
+  app.get("/api/v1/ai/agents",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:aiSecretary().registry(aiActor(request))})));
+  app.get("/api/v1/ai/commands",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await aiSecretary().history(aiActor(request))})));
+  app.post("/api/v1/ai/commands",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await aiSecretary().execute(aiActor(request),AiSecretaryCommandRequestSchema.parse(request.body))}),201));
   app.get("/api/v1/notifications",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>{const result=await notifications().list(notificationActor(request),NotificationListQuerySchema.parse(request.query));return {data:result.items,pagination:result.pagination};}));
   app.get("/api/v1/notifications/unread-count",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:{count:await notifications().unreadCount(notificationActor(request))}})));
   app.get("/api/v1/notifications/:id",{preHandler:authenticate},async(request:any,reply)=>clientRoute(request,reply,async()=>({data:await notifications().get(notificationActor(request),NotificationIdParamsSchema.parse(request.params).id)})));
