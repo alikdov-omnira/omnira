@@ -1,6 +1,6 @@
 import type {
   ClientContract,CreateClientRequest,CreateProjectRequest,CreatePropertyRequest,CreateTaskRequest,DocumentContract,DocumentVersionSchema,
-  ExpenseContract,InvoiceContract,PaymentContract,ProjectContract,ProjectFinancialSummary,PropertyContract,TaskContract,UpdateClientRequest,UpdateProjectRequest,
+  ExpenseContract,InvoiceContract,PaymentContract,ProjectContract,ProjectFinancialSummary,PropertyContract,TaskContract,TaskProblemContract,UpdateClientRequest,UpdateProjectRequest,
   UpdatePropertyRequest,UpdateTaskRequest,NotificationContract,NotificationPreferencesContract,MeasurementUnitContract,WorkCategoryContract,WorkCategoryNodeContract,WorkItemContract,MaterialCategoryContract,MaterialCategoryNodeContract,MaterialContract,PriceListContract,PriceListItemContract,ConstructionNormContract,ConstructionNormItemContract,EstimateContract,EstimateItemContract,EstimateMaterialContract
 } from "@odls/contracts";
 import {NotificationSchema,NotificationPreferencesSchema} from "@odls/contracts";
@@ -13,6 +13,7 @@ export type CreateByResource={clients:CreateClientRequest;properties:CreatePrope
 export type UpdateByResource={clients:UpdateClientRequest;properties:UpdatePropertyRequest;projects:UpdateProjectRequest;tasks:UpdateTaskRequest};
 export type ProjectAction="plan"|"start"|"pause"|"resume"|"complete"|"cancel";
 export type TaskAction="start"|"block"|"resume"|"complete"|"cancel";
+export type TaskReviewAction="submit"|"accept"|"return";
 export type ReportName="accounts-receivable"|"profitability"|"deadlines"|"workload"|"documents"|"activity";
 export type ReportEnvelope={data:any[];pagination:{page:number;pageSize:number;total:number;totalPages:number};range:{start:string;endExclusive:string;timezone:"UTC"}};
 export type PageEnvelope<T>={data:T[];pagination:{page:number;pageSize:number;total:number;totalPages:number}};
@@ -93,6 +94,7 @@ export const api={
   company:()=>raw<{id:string;name:string;slug:string}>("/company"),
   users:()=>raw<Array<{id:string;email:string;display_name:string;is_disabled:boolean;version:number}>>("/users").then(items=>items.map(item=>({id:item.id,email:item.email,displayName:item.display_name,isDisabled:item.is_disabled,version:item.version}))),
   list:<R extends Resource>(resource:R,search="")=>raw<EntityByResource[R][]>(`/${resource}?pageSize=100${search?`&search=${encodeURIComponent(search)}`:""}`),
+  assignedTasks:(userId:string)=>raw<TaskContract[]>(`/tasks?pageSize=100&assigneeId=${encodeURIComponent(userId)}&sortBy=dueDate&sortOrder=asc`),
   projectsPage:(query:string)=>envelope<PageEnvelope<ProjectContract>>(`/projects?${query}`),
   get:<R extends Resource>(resource:R,id:string)=>raw<EntityByResource[R]>(`/${resource}/${id}`),
   create:<R extends Resource>(resource:R,body:CreateByResource[R])=>raw<EntityByResource[R]>(`/${resource}`,json("POST",body)),
@@ -100,6 +102,7 @@ export const api={
   archive:<R extends Resource>(resource:R,id:string,expectedVersion:number)=>raw<EntityByResource[R]>(`/${resource}/${id}`,json("DELETE",{expectedVersion})),
   projectLifecycle:(id:string,action:ProjectAction,expectedVersion:number)=>raw<ProjectContract>(`/projects/${id}/${action}`,json("POST",{expectedVersion})),
   taskLifecycle:(id:string,action:TaskAction,expectedVersion:number)=>raw<TaskContract>(`/tasks/${id}/${action}`,json("POST",{expectedVersion})),
+  taskReview:(id:string,action:TaskReviewAction,expectedVersion:number,comment?:string)=>raw<TaskContract>(`/tasks/${id}/${action}`,json("POST",{expectedVersion,...(comment?{comment}:{})})),
   assign:(taskId:string,userId:string,expectedVersion:number)=>raw<TaskContract>(`/tasks/${taskId}/assignees`,json("POST",{userId,expectedVersion})),
   unassign:(taskId:string,userId:string,expectedVersion:number)=>raw<TaskContract>(`/tasks/${taskId}/assignees/${userId}`,json("DELETE",{expectedVersion})),
   invoices:()=>raw<InvoiceContract[]>("/invoices?pageSize=100"),
@@ -120,6 +123,10 @@ export const api={
   archiveExpense:(id:string,expectedVersion:number)=>raw<ExpenseContract>(`/expenses/${id}`,json("DELETE",{expectedVersion})),
   projectFinancialSummary:(id:string)=>raw<ProjectFinancialSummary>(`/projects/${id}/financial-summary`),
   documents:()=>raw<DocumentContract[]>("/documents?pageSize=100"),
+  taskDocuments:(taskId:string)=>raw<DocumentContract[]>(`/documents?pageSize=100&entityType=task&entityId=${encodeURIComponent(taskId)}&sortBy=createdAt&sortOrder=desc`),
+  taskProblems:(taskId?:string)=>raw<TaskProblemContract[]>(`/task-problems${taskId?`?taskId=${encodeURIComponent(taskId)}`:""}`),
+  createTaskProblem:(taskId:string,body:{category:string;description:string;location?:string})=>raw<TaskProblemContract>(`/tasks/${taskId}/problems`,json("POST",body)),
+  updateTaskProblem:(id:string,expectedVersion:number,status:"acknowledged"|"resolved")=>raw<TaskProblemContract>(`/task-problems/${id}`,json("PATCH",{expectedVersion,status})),
   document:(id:string)=>raw<DocumentContract>(`/documents/${id}`),
   uploadDocument:(file:File,meta:{category:string;description:string;entityType:string;entityId:string})=>{const body=new FormData();for(const [k,v] of Object.entries(meta))body.append(k,v);body.append("file",file);return raw<DocumentContract>("/documents",{method:"POST",body});},
   updateDocument:(id:string,body:unknown)=>raw<DocumentContract>(`/documents/${id}`,json("PATCH",body)),

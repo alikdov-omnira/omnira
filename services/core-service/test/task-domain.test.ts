@@ -1,7 +1,7 @@
 import {describe,expect,it} from "vitest";
 import {assertCanArchiveTask,assertCanAssignTask,assertCanCreateTask,assertCanReadTask,assertCanTransitionTask,assertCanUpdateTask} from "../src/authorization/task-policy.js";
 import {DomainError} from "../src/domain/errors.js";
-import {assertDueDateWithinProject,normalizeTask,normalizeTaskUpdate,taskLifecycleTransition} from "../src/domain/task/task-rules.js";
+import {assertDueDateWithinProject,normalizeReviewComment,normalizeTask,normalizeTaskUpdate,taskLifecycleTransition} from "../src/domain/task/task-rules.js";
 import {TaskService} from "../src/application/task/task-service.js";
 
 const valid={projectId:"project",title:" Inspect roof ",description:" Before rain ",priority:"high" as const,dueDate:"2026-08-01"};
@@ -19,6 +19,8 @@ describe("Task lifecycle",()=>{
   it("starts todo",()=>expect(taskLifecycleTransition("start","todo")).toBe("in_progress"));
   it("blocks and resumes work",()=>{expect(taskLifecycleTransition("block","in_progress")).toBe("blocked");expect(taskLifecycleTransition("resume","blocked")).toBe("in_progress");});
   it("completes in-progress work",()=>expect(taskLifecycleTransition("complete","in_progress")).toBe("completed"));
+  it("submits, returns, restarts and accepts assigned work",()=>{expect(taskLifecycleTransition("submit","in_progress")).toBe("submitted_for_review");expect(taskLifecycleTransition("return","submitted_for_review")).toBe("returned");expect(taskLifecycleTransition("start","returned")).toBe("in_progress");expect(taskLifecycleTransition("accept","submitted_for_review")).toBe("accepted")});
+  it("requires a bounded human return comment",()=>{expect(normalizeReviewComment("return"," Fix the edge ")).toBe("Fix the edge");expect(()=>normalizeReviewComment("return"," ")).toThrowError(expect.objectContaining({code:"VALIDATION_ERROR"}))});
   it("cancels mutable work",()=>expect(taskLifecycleTransition("cancel","blocked")).toBe("cancelled"));
   it("rejects terminal transitions",()=>expect(()=>taskLifecycleTransition("start","completed")).toThrowError(expect.objectContaining({code:"INVALID_STATUS_TRANSITION"})));
 });
