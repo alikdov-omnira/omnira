@@ -6,6 +6,7 @@ import type {
 import {NotificationSchema,NotificationPreferencesSchema} from "@odls/contracts";
 
 export type Session={accessToken:string;refreshToken:string;user:{id:string;email:string;displayName:string};permissions:string[]};
+export type AiSecretaryResult={id:string;inputMode:"text"|"voice";intent:string;agentId:string;truth:"REAL"|"DERIVED"|"PARTIAL"|"UNAVAILABLE";status:string;message:string;result:Record<string,any>;sources:Array<{entityType:string;entityId:string;version?:number;label:string;status?:string;provenance?:Record<string,unknown>}>;requiredHumanAction?:string};
 export type UserSummary={id:string;email:string;displayName:string;isDisabled:boolean;version:number};
 export type Resource="clients"|"properties"|"projects"|"tasks";
 export type EntityByResource={clients:ClientContract;properties:PropertyContract;projects:ProjectContract;tasks:TaskContract};
@@ -297,6 +298,9 @@ export const api={
   clientProject:(projectId:string)=>raw<any>(`/client-workspace/projects/${projectId}`),
   createClientRequest:(body:{projectId:string;requestType:string;subject:string;description:string})=>raw<any>("/client-workspace/requests",json("POST",body)),
   decideClientApproval:(approvalId:string,body:{expectedVersion:number;decision:"approved"|"rejected"|"clarification_requested";comment?:string})=>raw<any>(`/client-workspace/approvals/${approvalId}/decision`,json("POST",body)),
+  aiAgents:()=>raw<any[]>("/ai/agents"),
+  aiHistory:()=>raw<AiSecretaryResult[]>("/ai/commands"),
+  aiCommand:(body:{text:string;inputMode:"text"|"voice";projectId?:string})=>raw<AiSecretaryResult>("/ai/commands",json("POST",body)),
   tagRoomScanPhoto:(scanId:string,attachmentId:string,condition:string,note?:string)=>raw<any>(`/construction-assistant/room-scans/${scanId}/photos/${attachmentId}/tags`,json("POST",{condition,note})),
   exportReport:async(name:ReportName,query="range=30")=>{const headers=new Headers();if(session)headers.set("authorization",`Bearer ${session.accessToken}`);const response=await fetch(`${base}/reports/${name}/export?${query}`,{headers});if(!response.ok){const body=await response.json().catch(()=>({}));throw new ApiError(response.status,body?.error?.code??"REQUEST_FAILED");}return {blob:await response.blob(),disposition:response.headers.get("content-disposition")};},
   logout:()=>session?raw<{revoked:boolean}>("/auth/logout",json("POST",{refreshToken:session.refreshToken})):Promise.resolve()

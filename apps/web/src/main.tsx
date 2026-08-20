@@ -15,6 +15,7 @@ import "./omniro-project-manager-workspace.css";
 import "./omniro-site-manager-workspace.css";
 import "./omniro-worker-workspace.css";
 import "./omniro-client-workspace.css";
+import "./omniro-ai-secretary.css";
 
 const queryClient = new QueryClient();
 createRoot(document.getElementById("root")!).render(<StrictMode><QueryClientProvider client={queryClient}><App /></QueryClientProvider></StrictMode>);

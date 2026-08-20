@@ -1,4 +1,4 @@
-import{lazy,Suspense}from"react";
+import{lazy,Suspense,useState}from"react";
 import type{ProjectContract}from"@odls/contracts";
 import type{Session}from"./api.js";
 import{LivingEarth}from"./living-earth.js";
@@ -9,6 +9,7 @@ import{OmniroDataFlowLanes,OmniroDataFlowLegend}from"./omniro-data-flow-renderer
 import{OmniroDirectorWorkspace,type DirectorContextPage}from"./omniro-director-workspace.js";
 import type{DirectorSources}from"./omniro-director-workspace-model.js";
 import{dataFlowVisualRegistry,productRegistry,type OmniroEnvironmentLayer}from"./omniro-operating-environment-model.js";
+import{OmniroAiSecretary}from"./omniro-ai-secretary.js";
 
 const OmniroAccountantWorkspace=lazy(()=>import("./omniro-accountant-workspace.js").then(module=>({default:module.OmniroAccountantWorkspace})));
 const OmniroProjectManagerWorkspace=lazy(()=>import("./omniro-project-manager-workspace.js").then(module=>({default:module.OmniroProjectManagerWorkspace})));
@@ -18,8 +19,8 @@ const OmniroClientWorkspace=lazy(()=>import("./omniro-client-workspace.js").then
 type Props={session:Session;projects:ProjectContract[];project:ProjectContract;runtime:OmniroRuntimeSnapshot;runtimes:ReadonlyMap<string,OmniroRuntimeSnapshot>;directorSources:DirectorSources;flows:readonly OmniroFlowRuntimeState[];layer:OmniroEnvironmentLayer;roleId?:string;onLayer:(layer:OmniroEnvironmentLayer)=>void;onRole:(id:string)=>void;onProject:(id:string)=>void;onModule:(id:string,projectId?:string)=>void;onWorkspace:(id:string,projectId?:string)=>void;onContext:(page:DirectorContextPage,id?:string)=>void};
 const truthLabel=(truth:string)=><span className={`oe-truth truth-${truth.toLowerCase()}`}>{truth}</span>;
 
-function EnvironmentHeader({session,layer,onLayer}:{session:Session;layer:OmniroEnvironmentLayer;onLayer:(layer:OmniroEnvironmentLayer)=>void}){
- return <header className="oe-header"><button className="oe-brand" onClick={()=>onLayer("universe")} aria-label="Open OMNIRO Universe"><i aria-hidden="true"/>OMNIRO</button><nav aria-label="Operating environment layers">{(["universe","building","role"]as const).map((item,index)=><button key={item} className={layer===item?"is-current":""} aria-current={layer===item?"page":undefined} onClick={()=>onLayer(item)}><b>0{index+1}</b>{item==="role"?"Role Workspace":item==="building"?"Product World":"Universe"}</button>)}</nav><div className="oe-actor"><span>AI Secretary <small>Grounded guidance</small></span><b>{session.user.displayName}</b></div></header>;
+function EnvironmentHeader({session,layer,onLayer,onSecretary}:{session:Session;layer:OmniroEnvironmentLayer;onLayer:(layer:OmniroEnvironmentLayer)=>void;onSecretary:()=>void}){
+ return <header className="oe-header"><button className="oe-brand" onClick={()=>onLayer("universe")} aria-label="Open OMNIRO Universe"><i aria-hidden="true"/>OMNIRO</button><nav aria-label="Operating environment layers">{(["universe","building","role"]as const).map((item,index)=><button key={item} className={layer===item?"is-current":""} aria-current={layer===item?"page":undefined} onClick={()=>onLayer(item)}><b>0{index+1}</b>{item==="role"?"Role Workspace":item==="building"?"Product World":"Universe"}</button>)}</nav><button className="oe-actor" onClick={onSecretary} aria-label="Open AI Secretary"><span>AI Secretary <small>Permission-bound commands</small></span><b>{session.user.displayName}</b></button></header>;
 }
 
 function Universe({projects,onLayer}:{projects:ProjectContract[];onLayer:(layer:OmniroEnvironmentLayer)=>void}){
@@ -33,8 +34,9 @@ function BuildingWorld({projects,project,runtime,flows,onProject,onModule,onWork
 }
 
 export function OmniroOperatingEnvironment(props:Props){
+ const[secretaryOpen,setSecretaryOpen]=useState(false);
  const projectedFlows=dataFlowVisualRegistry.project(props.runtime,props.flows);
  const workspaceProps={session:props.session,projects:props.projects,project:props.project,runtimes:props.runtimes,sources:props.directorSources,flows:projectedFlows,onBack:()=>props.onLayer("building"),onRole:props.onRole,onProject:props.onProject,onModule:props.onModule,onWorkspace:props.onWorkspace,onContext:props.onContext};
  const role=props.roleId==="accountant"?<Suspense fallback={<section className="oc-load">Loading Accountant Workspace</section>}><OmniroAccountantWorkspace {...workspaceProps}/></Suspense>:props.roleId==="project-manager"?<Suspense fallback={<section className="oc-load">Loading Project Manager Workspace</section>}><OmniroProjectManagerWorkspace {...workspaceProps}/></Suspense>:props.roleId==="site-manager"?<Suspense fallback={<section className="oc-load">Loading Site Manager Workspace</section>}><OmniroSiteManagerWorkspace {...workspaceProps}/></Suspense>:props.roleId==="worker"?<Suspense fallback={<section className="oc-load">Loading Worker Workspace</section>}><OmniroWorkerWorkspace session={props.session} project={props.project} onBack={()=>props.onLayer("building")} onScanner={()=>props.onWorkspace("room-scanner",props.project.id)} onNotifications={()=>props.onContext("notifications")}/></Suspense>:props.roleId==="client"?<Suspense fallback={<section className="oc-load">Loading Client Workspace</section>}><OmniroClientWorkspace session={props.session} onBack={()=>props.onLayer("building")} onNotifications={()=>props.onContext("notifications")}/></Suspense>:<OmniroDirectorWorkspace {...workspaceProps}/>;
- return <section className={`oe-shell layer-${props.layer}`}><EnvironmentHeader session={props.session} layer={props.layer} onLayer={props.onLayer}/>{props.layer==="universe"?<Universe projects={props.projects} onLayer={props.onLayer}/>:props.layer==="building"?<BuildingWorld {...props}/>:role}<footer className="oe-constitution"><span><b>Unified data model</b>Single source of truth</span><span><b>Secure & compliant</b>RLS · Audit · Permissions</span><span><b>AI assisted</b>Explain · Recommend · Alert</span><span><b>Human authority</b>You decide · You approve</span><strong>Operating Environment, Not a Website</strong></footer></section>;
+ return <section className={`oe-shell layer-${props.layer}`}><EnvironmentHeader session={props.session} layer={props.layer} onLayer={props.onLayer} onSecretary={()=>setSecretaryOpen(true)}/><OmniroAiSecretary open={secretaryOpen} projects={props.projects} projectId={props.project.id} onClose={()=>setSecretaryOpen(false)} onDocument={id=>props.onContext("documents",id)} onWorkspace={(moduleId,projectId)=>props.onWorkspace(moduleId,projectId)} onContext={page=>props.onContext(page)}/>{props.layer==="universe"?<Universe projects={props.projects} onLayer={props.onLayer}/>:props.layer==="building"?<BuildingWorld {...props}/>:role}<footer className="oe-constitution"><span><b>Unified data model</b>Single source of truth</span><span><b>Secure & compliant</b>RLS · Audit · Permissions</span><span><b>AI assisted</b>Explain · Recommend · Alert</span><span><b>Human authority</b>You decide · You approve</span><strong>Operating Environment, Not a Website</strong></footer></section>;
 }
