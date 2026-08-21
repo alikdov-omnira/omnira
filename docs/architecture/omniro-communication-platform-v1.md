@@ -8,7 +8,7 @@ The platform chain is `User → AI Secretary → Orchestrator → Communication 
 
 ## Truth and providers
 
-Telegram, Email, WhatsApp and future SMS implement one provider port. A configured and authenticated adapter may be `REAL`; a contract without authorization is `PARTIAL`; an absent operational connection is `UNAVAILABLE`. V1 ships no credentials and no sending provider, so every external channel is `UNAVAILABLE`. The Hub never fabricates provider IDs or reports `SENT` before a real adapter accepts a message.
+Telegram, Email, WhatsApp and future SMS implement one provider port. A configured and authenticated adapter may be `REAL`; a contract without authorization is `PARTIAL`; an absent operational connection is `UNAVAILABLE`. Email Provider V1 installs the official Resend adapter, but it remains `PARTIAL` until the owner supplies credentials, verifies the sending/receiving domain, and completes real outbound, inbound and delivery/failure callback checks. The Hub never fabricates provider IDs or reports `SENT` before a real adapter accepts a message.
 
 Email envelopes reserve `to`, `cc`, `subject`, `body`, Documents attachment IDs and thread references. Telegram and WhatsApp map the same canonical envelope. Official providers can be added without changing Hub lifecycle or persistence.
 
@@ -21,6 +21,14 @@ All external outbound messages follow `DRAFT → READY_FOR_REVIEW → APPROVED_T
 Forced tenant RLS protects every table. Application access additionally requires project authority or active client-project membership. Clients receive only conversations for permitted projects; role permissions bound read/create/review/send/inbound resolution. Every state-changing action writes `audit_logs` without secrets. Provenance retains AI command, source references, human approval and provider state.
 
 Attachments reference existing Documents records through composite tenant foreign keys. The Hub has no file store. Translation is a port; original text remains immutable and any translated representation is stored separately.
+
+## Email Provider V1
+
+Resend is the first external provider. Outbound calls use a provider idempotency key and carry the approved message, pinned Documents versions, optional `In-Reply-To`/`References`, and non-secret tenant/message tags used to resolve signed callbacks. A provider rejection moves an approved message to `FAILED`; an accepted provider ID is required before `SENT`; only signed delivery callbacks may produce `DELIVERED`.
+
+The webhook is `POST /api/v1/communications/providers/resend/webhook`. Signature verification uses the raw request body and the `svix-id`, `svix-timestamp`, and `svix-signature` headers. The same endpoint accepts `email.received`, `email.delivered`, `email.failed`, and `email.bounced`; provider-event uniqueness supplies replay protection. Exact receiving-address routes are configured with `RESEND_INBOUND_ROUTES`. Missing or ambiguous routes remain unresolved and never acquire a project/client association. Inbound attachment bytes are imported through the existing Documents authority; no second file store exists.
+
+Required secret/runtime configuration is `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`, `RESEND_FROM_EMAIL`, and `RESEND_INBOUND_ROUTES`. `RESEND_PROVIDER_VERIFIED=true` is an explicit owner-controlled truth gate and must be set only after live send, receive, delivery and failure verification. Secrets and webhook payloads are not written to audit metadata.
 
 ## Voice policy
 
