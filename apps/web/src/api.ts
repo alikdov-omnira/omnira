@@ -7,6 +7,8 @@ import {NotificationSchema,NotificationPreferencesSchema} from "@odls/contracts"
 
 export type Session={accessToken:string;refreshToken:string;user:{id:string;email:string;displayName:string};permissions:string[]};
 export type AiSecretaryResult={id:string;inputMode:"text"|"voice";intent:string;agentId:string;truth:"REAL"|"DERIVED"|"PARTIAL"|"UNAVAILABLE";status:string;message:string;result:Record<string,any>;sources:Array<{entityType:string;entityId:string;version?:number;label:string;status?:string;provenance?:Record<string,unknown>}>;requiredHumanAction?:string};
+export type CommunicationMessageDto={id:string;conversationId:string;channel:"internal"|"telegram"|"email"|"whatsapp"|"sms";direction:"inbound"|"outbound";subject?:string;body:string;status:"DRAFT"|"READY_FOR_REVIEW"|"APPROVED_TO_SEND"|"SENT"|"DELIVERED"|"FAILED";recipientResolution:Record<string,any>;projectId?:string;clientId?:string;provider?:string;providerMessageId?:string;errorCode?:string;errorMessage?:string;provenance:Record<string,unknown>;documentIds:string[];version:number;createdAt:string};
+export type CommunicationConversationDto={id:string;projectId?:string;clientId?:string;subject:string;status:string;relatedEntityType?:string;relatedEntityId?:string;version:number;createdAt:string;updatedAt:string;messageCount?:number;messages?:CommunicationMessageDto[];participants?:any[]};
 export type UserSummary={id:string;email:string;displayName:string;isDisabled:boolean;version:number};
 export type Resource="clients"|"properties"|"projects"|"tasks";
 export type EntityByResource={clients:ClientContract;properties:PropertyContract;projects:ProjectContract;tasks:TaskContract};
@@ -301,6 +303,13 @@ export const api={
   aiAgents:()=>raw<any[]>("/ai/agents"),
   aiHistory:()=>raw<AiSecretaryResult[]>("/ai/commands"),
   aiCommand:(body:{text:string;inputMode:"text"|"voice";projectId?:string})=>raw<AiSecretaryResult>("/ai/commands",json("POST",body)),
+  communicationProviders:()=>raw<Array<{id:string;channel:string;truth:"REAL"|"PARTIAL"|"UNAVAILABLE";reason:string}>>("/communications/providers"),
+  communicationConversations:(projectId?:string)=>raw<CommunicationConversationDto[]>(`/communications/conversations${projectId?`?projectId=${encodeURIComponent(projectId)}`:""}`),
+  communicationConversation:(id:string)=>raw<CommunicationConversationDto>(`/communications/conversations/${id}`),
+  createCommunicationConversation:(body:unknown)=>raw<CommunicationConversationDto>("/communications/conversations",json("POST",body)),
+  createCommunicationDraft:(id:string,body:unknown)=>raw<CommunicationMessageDto>(`/communications/conversations/${id}/drafts`,json("POST",body)),
+  transitionCommunicationMessage:(id:string,status:"READY_FOR_REVIEW"|"APPROVED_TO_SEND",expectedVersion:number)=>raw<CommunicationMessageDto>(`/communications/messages/${id}/transition`,json("POST",{status,expectedVersion})),
+  sendCommunicationMessage:(id:string,expectedVersion:number)=>raw<CommunicationMessageDto>(`/communications/messages/${id}/send`,json("POST",{expectedVersion})),
   tagRoomScanPhoto:(scanId:string,attachmentId:string,condition:string,note?:string)=>raw<any>(`/construction-assistant/room-scans/${scanId}/photos/${attachmentId}/tags`,json("POST",{condition,note})),
   exportReport:async(name:ReportName,query="range=30")=>{const headers=new Headers();if(session)headers.set("authorization",`Bearer ${session.accessToken}`);const response=await fetch(`${base}/reports/${name}/export?${query}`,{headers});if(!response.ok){const body=await response.json().catch(()=>({}));throw new ApiError(response.status,body?.error?.code??"REQUEST_FAILED");}return {blob:await response.blob(),disposition:response.headers.get("content-disposition")};},
   logout:()=>session?raw<{revoked:boolean}>("/auth/logout",json("POST",{refreshToken:session.refreshToken})):Promise.resolve()
