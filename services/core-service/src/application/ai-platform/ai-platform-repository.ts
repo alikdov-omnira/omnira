@@ -5,6 +5,7 @@ export interface AiPlatformRepository{
  project(db:PoolClient,actor:AiActor,projectId:string):Promise<any|undefined>;
  clientProjectAccess(db:PoolClient,actor:AiActor,projectId:string):Promise<boolean>;
  findClient(db:PoolClient,actor:AiActor,projectId:string,query:string):Promise<any|undefined>;
+ findTelegramIdentity(db:PoolClient,actor:AiActor,projectId:string,clientId?:string):Promise<any|undefined>;
  findDocument(db:PoolClient,actor:AiActor,projectId:string,query:{type?:string;search:string;approved:boolean}):Promise<any|undefined>;
  invoices(db:PoolClient,actor:AiActor,projectId:string):Promise<any[]>;
  estimate(db:PoolClient,actor:AiActor,projectId:string):Promise<any|undefined>;
