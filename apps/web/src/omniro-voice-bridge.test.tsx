@@ -1,0 +1,2 @@
+import{describe,expect,it,vi}from"vitest";import{createVoiceApi}from"./omniro-voice-bridge.js";
+describe("Voice Bridge web client",()=>{it("uses only the shared Voice Bridge endpoints",async()=>{const fetcher=vi.fn().mockResolvedValue({ok:true,json:async()=>({data:{id:"session",providerTruth:"PARTIAL"}})}),api=createVoiceApi(fetcher as any);await api.start({mode:"voice_command",participants:[{userId:"00000000-0000-4000-8000-000000000001",listeningLanguage:"pl-PL"}]});expect(fetcher).toHaveBeenCalledWith("/api/v1/voice/sessions",expect.objectContaining({method:"POST"}))})});
