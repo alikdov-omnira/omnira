@@ -588,3 +588,7 @@ export const CommunicationSendRequestSchema=z.object({expectedVersion:z.number()
 export const TelegramIdentityParamsSchema=z.object({identityId:z.string().uuid()}).strict();
 export const CreateTelegramIdentityRequestSchema=z.object({externalUserId:z.string().trim().min(1).max(100),externalChatId:z.string().trim().min(1).max(100),actorId:z.string().uuid().optional(),clientId:z.string().uuid().optional(),projectId:z.string().uuid().optional(),provenance:z.record(z.string(),z.unknown()).default({})}).strict().refine(x=>!!x.actorId||!!x.clientId,{message:"Actor or client identity is required"});
 export const UpdateTelegramIdentityRequestSchema=z.object({expectedVersion:z.number().int().positive().safe(),verificationState:z.enum(["verified","revoked"])}).strict();
+export const VoiceSessionParamsSchema=z.object({sessionId:z.string().uuid()}).strict();
+export const VoiceLanguageSchema=z.string().regex(/^[a-z]{2,3}(?:-[A-Z]{2})?$/);
+export const StartVoiceSessionRequestSchema=z.object({mode:z.enum(["conversation_translation","voice_command"]),participants:z.array(z.object({userId:z.string().uuid(),speakingLanguage:VoiceLanguageSchema.optional(),listeningLanguage:VoiceLanguageSchema}).strict()).min(1).max(8)}).strict();
+export const ProcessVoiceChunkRequestSchema=z.object({audioBase64:z.string().min(1).max(3_000_000),contentType:z.enum(["audio/wav","audio/pcm","audio/webm","audio/ogg"]),speakingLanguage:VoiceLanguageSchema.optional(),listeningLanguage:VoiceLanguageSchema,projectId:z.string().uuid().optional()}).strict();
